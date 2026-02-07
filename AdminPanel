@@ -1,206 +1,398 @@
---// CLEANHUB FULL ADMIN PANEL
---// by Someone
---// executor required (supports writefile)
+--// T-REX HUB | Full Admin Panel
+--// Mobile-friendly | Single File
 
--- ================== SERVICES ==================
+-- Services
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
-local TeleportService = game:GetService("TeleportService")
+local TweenService = game:GetService("TweenService")
 local Lighting = game:GetService("Lighting")
 local HttpService = game:GetService("HttpService")
-local VirtualUser = game:GetService("VirtualUser")
-local LP = Players.LocalPlayer
+local TeleportService = game:GetService("TeleportService")
+local LocalPlayer = Players.LocalPlayer
 
--- ================== CONFIG ==================
-local ConfigFile = "CleanHub_Config.json"
-local Config = {
-	WalkSpeed = 16,
-	JumpPower = 50,
-	FlySpeed = 50,
-	Time = 14,
-	Noclip = false,
-	InfJump = false,
-	Fullbright = false,
-	NoFog = false,
-	ESP = false,
-	Xray = false,
-	FPSBoost = false
+-- State
+local State = {
+    WalkSpeed = 16,
+    Fly = false,
+    FlySpeed = 60,
+    InfiniteJump = false,
+    Noclip = false,
+    ESP = false,
+    Xray = false,
+    Fullbright = false,
+    NoFog = false,
+    FPS = false,
+    BTools = false,
+    AntiAFK = true,
+    ClickTP = false,
+    Accent = Color3.fromRGB(0, 200, 120),
+    Minimized = false,
 }
 
--- ================== SAVE / LOAD ==================
-local function SaveConfig()
-	if writefile then
-		writefile(ConfigFile, HttpService:JSONEncode(Config))
-	end
+-- File
+local CFG = "TREX_HUB_CFG.json"
+local function SaveCFG()
+    if writefile then
+        writefile(CFG, HttpService:JSONEncode(State))
+    end
+end
+local function LoadCFG()
+    if readfile and isfile and isfile(CFG) then
+        local ok, data = pcall(function()
+            return HttpService:JSONDecode(readfile(CFG))
+        end)
+        if ok and type(data)=="table" then
+            for k,v in pairs(data) do State[k]=v end
+        end
+    end
+end
+LoadCFG()
+
+-- Utils
+local function Char()
+    return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+end
+local function Hum()
+    return Char():WaitForChild("Humanoid")
+end
+local function Root()
+    return Char():WaitForChild("HumanoidRootPart")
 end
 
-local function LoadConfig()
-	if readfile and isfile and isfile(ConfigFile) then
-		Config = HttpService:JSONDecode(readfile(ConfigFile))
-	end
-end
-LoadConfig()
+-- UI Base
+local gui = Instance.new("ScreenGui", game.CoreGui)
+gui.Name = "TREX_HUB"
 
--- ================== CHARACTER ==================
-local function GetChar()
-	local c = LP.Character or LP.CharacterAdded:Wait()
-	return c, c:WaitForChild("Humanoid"), c:WaitForChild("HumanoidRootPart")
-end
-
--- ================== UI ==================
-local Gui = Instance.new("ScreenGui", game.CoreGui)
-Gui.Name = "CleanHub"
-Gui.ResetOnSpawn = false
-
-local Main = Instance.new("Frame", Gui)
-Main.Size = UDim2.new(0,520,0,420)
-Main.Position = UDim2.new(0.5,-260,0.5,-210)
-Main.BackgroundColor3 = Color3.fromRGB(25,25,25)
+local Main = Instance.new("Frame", gui)
+Main.Size = UDim2.fromScale(0.38,0.6)
+Main.Position = UDim2.fromScale(0.31,0.2)
+Main.BackgroundColor3 = Color3.fromRGB(20,20,20)
+Main.BorderSizePixel = 0
 Main.Active = true
 Main.Draggable = true
+Instance.new("UICorner", Main).CornerRadius = UDim.new(0,14)
 
-local UIStroke = Instance.new("UIStroke", Main)
-UIStroke.Thickness = 2
-UIStroke.Color = Color3.fromRGB(90,90,90)
+local Top = Instance.new("Frame", Main)
+Top.Size = UDim2.new(1,0,0,42)
+Top.BackgroundColor3 = Color3.fromRGB(16,16,16)
+Top.BorderSizePixel = 0
+Instance.new("UICorner", Top).CornerRadius = UDim.new(0,14)
 
-local Title = Instance.new("TextLabel", Main)
-Title.Size = UDim2.new(1,0,0,40)
-Title.Text = "CLEANHUB — FULL ADMIN"
-Title.TextColor3 = Color3.new(1,1,1)
-Title.BackgroundTransparency = 1
+local Title = Instance.new("TextLabel", Top)
+Title.Size = UDim2.new(1,-80,1,0)
+Title.Position = UDim2.new(0,16,0,0)
+Title.Text = "🦖 T-REX HUB"
+Title.TextXAlignment = Left
+Title.TextColor3 = Color3.fromRGB(235,235,235)
 Title.Font = Enum.Font.GothamBold
-Title.TextSize = 18
+Title.TextSize = 16
+Title.BackgroundTransparency = 1
 
--- ================== UI UTILS ==================
-local function Button(text, y, callback)
-	local b = Instance.new("TextButton", Main)
-	b.Size = UDim2.new(0,240,0,32)
-	b.Position = UDim2.new(0,20,0,y)
-	b.Text = text
-	b.Font = Enum.Font.Gotham
-	b.TextSize = 14
-	b.TextColor3 = Color3.new(1,1,1)
-	b.BackgroundColor3 = Color3.fromRGB(40,40,40)
-	b.MouseButton1Click:Connect(callback)
-	return b
+local MinBtn = Instance.new("TextButton", Top)
+MinBtn.Size = UDim2.new(0,32,0,24)
+MinBtn.Position = UDim2.new(1,-40,0,9)
+MinBtn.Text = "—"
+MinBtn.Font = Enum.Font.GothamBold
+MinBtn.TextSize = 18
+MinBtn.TextColor3 = Color3.new(1,1,1)
+MinBtn.BackgroundColor3 = Color3.fromRGB(30,30,30)
+MinBtn.BorderSizePixel = 0
+Instance.new("UICorner", MinBtn).CornerRadius = UDim.new(0,8)
+
+local Body = Instance.new("ScrollingFrame", Main)
+Body.Position = UDim2.new(0,0,0,46)
+Body.Size = UDim2.new(1,0,1,-46)
+Body.CanvasSize = UDim2.new(0,0,0,900)
+Body.ScrollBarImageTransparency = 0.5
+Body.BackgroundTransparency = 1
+
+local function Section(txt)
+    local L = Instance.new("TextLabel", Body)
+    L.Size = UDim2.new(1,-24,0,28)
+    L.Text = txt
+    L.TextColor3 = State.Accent
+    L.Font = Enum.Font.GothamBold
+    L.TextSize = 14
+    L.BackgroundTransparency = 1
+    return L
 end
 
-local function Toggle(text, y, state, callback)
-	local t = Button(text.." : "..tostring(state), y, function()
-		state = not state
-		t.Text = text.." : "..tostring(state)
-		callback(state)
-	end)
+-- Toggle (lever)
+local function Toggle(name, get, set)
+    local C = Instance.new("Frame", Body)
+    C.Size = UDim2.new(1,-24,0,44)
+    C.BackgroundColor3 = Color3.fromRGB(26,26,26)
+    C.BorderSizePixel = 0
+    Instance.new("UICorner", C).CornerRadius = UDim.new(0,10)
+
+    local T = Instance.new("TextLabel", C)
+    T.Text = name
+    T.Size = UDim2.new(1,-80,1,0)
+    T.Position = UDim2.new(0,12,0,0)
+    T.TextColor3 = Color3.fromRGB(230,230,230)
+    T.Font = Enum.Font.Gotham
+    T.TextSize = 13
+    T.BackgroundTransparency = 1
+    T.TextXAlignment = Left
+
+    local S = Instance.new("Frame", C)
+    S.Size = UDim2.new(0,50,0,26)
+    S.Position = UDim2.new(1,-62,0.5,-13)
+    S.BackgroundColor3 = get() and Color3.fromRGB(40,160,80) or Color3.fromRGB(140,40,40)
+    S.BorderSizePixel = 0
+    Instance.new("UICorner", S).CornerRadius = UDim.new(1,0)
+
+    local K = Instance.new("Frame", S)
+    K.Size = UDim2.new(0,22,0,22)
+    K.Position = get() and UDim2.new(1,-24,0.5,-11) or UDim2.new(0,2,0.5,-11)
+    K.BackgroundColor3 = Color3.fromRGB(245,245,245)
+    Instance.new("UICorner", K).CornerRadius = UDim.new(1,0)
+
+    local function redraw(v)
+        TweenService:Create(S, TweenInfo.new(0.15), {
+            BackgroundColor3 = v and Color3.fromRGB(40,160,80) or Color3.fromRGB(140,40,40)
+        }):Play()
+        TweenService:Create(K, TweenInfo.new(0.15), {
+            Position = v and UDim2.new(1,-24,0.5,-11) or UDim2.new(0,2,0.5,-11)
+        }):Play()
+    end
+
+    S.InputBegan:Connect(function(i)
+        if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
+            local v = not get()
+            set(v); redraw(v); SaveCFG()
+        end
+    end)
+    redraw(get())
+    return C
 end
 
-local function Box(text, y, default, callback)
-	local b = Instance.new("TextBox", Main)
-	b.Size = UDim2.new(0,240,0,32)
-	b.Position = UDim2.new(0,20,0,y)
-	b.Text = text..": "..tostring(default)
-	b.BackgroundColor3 = Color3.fromRGB(40,40,40)
-	b.TextColor3 = Color3.new(1,1,1)
-	b.FocusLost:Connect(function()
-		local n = tonumber(b.Text:match("%d+"))
-		if n then callback(n) end
-	end)
+-- Slider (0..max)
+local function Slider(name, min, max, get, set)
+    local C = Instance.new("Frame", Body)
+    C.Size = UDim2.new(1,-24,0,56)
+    C.BackgroundColor3 = Color3.fromRGB(26,26,26)
+    C.BorderSizePixel = 0
+    Instance.new("UICorner", C).CornerRadius = UDim.new(0,10)
+
+    local T = Instance.new("TextLabel", C)
+    T.Text = name
+    T.Size = UDim2.new(1,-24,0,20)
+    T.Position = UDim2.new(0,12,0,6)
+    T.TextColor3 = Color3.fromRGB(230,230,230)
+    T.Font = Enum.Font.Gotham
+    T.TextSize = 13
+    T.BackgroundTransparency = 1
+    T.TextXAlignment = Left
+
+    local Bar = Instance.new("Frame", C)
+    Bar.Size = UDim2.new(1,-24,0,10)
+    Bar.Position = UDim2.new(0,12,1,-18)
+    Bar.BackgroundColor3 = Color3.fromRGB(50,50,50)
+    Bar.BorderSizePixel = 0
+    Instance.new("UICorner", Bar).CornerRadius = UDim.new(1,0)
+
+    local Fill = Instance.new("Frame", Bar)
+    Fill.Size = UDim2.new((get()-min)/(max-min),0,1,0)
+    Fill.BackgroundColor3 = State.Accent
+    Fill.BorderSizePixel = 0
+    Instance.new("UICorner", Fill).CornerRadius = UDim.new(1,0)
+
+    local drag=false
+    local function upd(x)
+        local a = math.clamp((x-Bar.AbsolutePosition.X)/Bar.AbsoluteSize.X,0,1)
+        local v = math.floor(min + (max-min)*a)
+        set(v)
+        Fill.Size = UDim2.new(a,0,1,0)
+        SaveCFG()
+    end
+    Bar.InputBegan:Connect(function(i)
+        if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
+            drag=true; upd(i.Position.X)
+        end
+    end)
+    UIS.InputChanged:Connect(function(i)
+        if drag and (i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch) then
+            upd(i.Position.X)
+        end
+    end)
+    UIS.InputEnded:Connect(function(i)
+        if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then drag=false end
+    end)
+    return C
 end
 
--- ================== FEATURES ==================
+-- Build UI
+local y=0
+local function add(o) o.Position=UDim2.new(0,12,0,y); y+=o.AbsoluteSize.Y+10 end
 
--- WalkSpeed
-Box("WalkSpeed",60,Config.WalkSpeed,function(v)
-	Config.WalkSpeed = math.clamp(v,1,500)
-	GetChar():WaitForChild("Humanoid").WalkSpeed = Config.WalkSpeed
-	SaveConfig()
+add(Section("Movement"))
+add(Slider("WalkSpeed", 16, 200, function() return State.WalkSpeed end, function(v)
+    State.WalkSpeed=v; if Hum() then Hum().WalkSpeed=v end
+end))
+add(Toggle("Fly", function() return State.Fly end, function(v) State.Fly=v end))
+add(Slider("Fly Speed", 20, 200, function() return State.FlySpeed end, function(v) State.FlySpeed=v end))
+add(Toggle("Infinite Jump", function() return State.InfiniteJump end, function(v) State.InfiniteJump=v end))
+add(Toggle("Noclip", function() return State.Noclip end, function(v) State.Noclip=v end))
+
+add(Section("Visual"))
+add(Toggle("ESP", function() return State.ESP end, function(v) State.ESP=v end))
+add(Toggle("X-Ray", function() return State.Xray end, function(v) State.Xray=v end))
+add(Toggle("Fullbright", function() return State.Fullbright end, function(v) State.Fullbright=v end))
+add(Toggle("No Fog", function() return State.NoFog end, function(v) State.NoFog=v end))
+
+add(Section("World / Misc"))
+add(Toggle("FPS Boost", function() return State.FPS end, function(v) State.FPS=v end))
+add(Toggle("BTools", function() return State.BTools end, function(v) State.BTools=v end))
+add(Toggle("Anti AFK", function() return State.AntiAFK end, function(v) State.AntiAFK=v end))
+
+add(Section("Teleport"))
+add(Toggle("Click TP", function() return State.ClickTP end, function(v) State.ClickTP=v end))
+
+add(Section("UI"))
+add(Toggle("Minimize", function() return State.Minimized end, function(v)
+    State.Minimized=v
+    Body.Visible = not v
+    Main.Size = v and UDim2.fromScale(0.38,0.08) or UDim2.fromScale(0.38,0.6)
+end))
+
+Body.CanvasSize = UDim2.new(0,0,0,y+20)
+
+-- Systems
+-- WalkSpeed apply
+Hum().WalkSpeed = State.WalkSpeed
+LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(0.5)
+    Hum().WalkSpeed = State.WalkSpeed
 end)
 
--- JumpPower
-Box("JumpPower",100,Config.JumpPower,function(v)
-	Config.JumpPower = math.clamp(v,1,500)
-	GetChar():WaitForChild("Humanoid").JumpPower = Config.JumpPower
-	SaveConfig()
-end)
-
--- Noclip
-Toggle("Noclip",140,Config.Noclip,function(v)
-	Config.Noclip = v
-end)
-
-RunService.Stepped:Connect(function()
-	if Config.Noclip then
-		for _,v in pairs(LP.Character:GetDescendants()) do
-			if v:IsA("BasePart") then v.CanCollide = false end
-		end
-	end
+-- Fly
+local flyBV, flyBG
+RunService.Heartbeat:Connect(function()
+    if State.Fly then
+        if not flyBV then
+            flyBV = Instance.new("BodyVelocity", Root())
+            flyBV.MaxForce = Vector3.new(1e9,1e9,1e9)
+            flyBG = Instance.new("BodyGyro", Root())
+            flyBG.MaxTorque = Vector3.new(1e9,1e9,1e9)
+        end
+        local cam = workspace.CurrentCamera
+        local dir = Vector3.zero
+        if UIS:IsKeyDown(Enum.KeyCode.W) then dir += cam.CFrame.LookVector end
+        if UIS:IsKeyDown(Enum.KeyCode.S) then dir -= cam.CFrame.LookVector end
+        if UIS:IsKeyDown(Enum.KeyCode.A) then dir -= cam.CFrame.RightVector end
+        if UIS:IsKeyDown(Enum.KeyCode.D) then dir += cam.CFrame.RightVector end
+        if UIS:IsKeyDown(Enum.KeyCode.Space) then dir += Vector3.new(0,1,0) end
+        if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then dir -= Vector3.new(0,1,0) end
+        flyBV.Velocity = dir * State.FlySpeed
+        flyBG.CFrame = cam.CFrame
+    else
+        if flyBV then flyBV:Destroy(); flyBV=nil end
+        if flyBG then flyBG:Destroy(); flyBG=nil end
+    end
 end)
 
 -- Infinite Jump
-Toggle("Infinite Jump",180,Config.InfJump,function(v)
-	Config.InfJump = v
-end)
-
 UIS.JumpRequest:Connect(function()
-	if Config.InfJump then
-		GetChar():WaitForChild("Humanoid"):ChangeState("Jumping")
-	end
+    if State.InfiniteJump then Hum():ChangeState(Enum.HumanoidStateType.Jumping) end
 end)
 
--- Click Teleport
-Toggle("Click TP",220,false,function(v)
-	if v then
-		local con
-		con = UIS.InputBegan:Connect(function(i,g)
-			if i.UserInputType == Enum.UserInputType.MouseButton1 then
-				local pos = LP:GetMouse().Hit.p
-				GetChar():WaitForChild("HumanoidRootPart").CFrame = CFrame.new(pos+Vector3.new(0,3,0))
-			end
-		end)
-	end
+-- Noclip
+RunService.Stepped:Connect(function()
+    if State.Noclip then
+        for _,v in ipairs(Char():GetDescendants()) do
+            if v:IsA("BasePart") then v.CanCollide=false end
+        end
+    end
 end)
 
--- Fullbright
-Toggle("Fullbright",260,Config.Fullbright,function(v)
-	Config.Fullbright = v
-	if v then
-		Lighting.Brightness = 3
-		Lighting.ClockTime = 14
-		Lighting.FogEnd = 1e9
-	end
+-- ESP
+local function applyESP()
+    for _,p in ipairs(Players:GetPlayers()) do
+        if p~=LocalPlayer and p.Character then
+            if State.ESP then
+                if not p.Character:FindFirstChild("TREX_ESP") then
+                    local h = Instance.new("Highlight", p.Character)
+                    h.Name="TREX_ESP"
+                    h.FillColor = State.Accent
+                    h.OutlineColor = Color3.new(1,1,1)
+                end
+            else
+                local h=p.Character:FindFirstChild("TREX_ESP")
+                if h then h:Destroy() end
+            end
+        end
+    end
+end
+Players.PlayerAdded:Connect(applyESP)
+Players.PlayerRemoving:Connect(applyESP)
+RunService.Heartbeat:Connect(applyESP)
+
+-- Xray
+RunService.Heartbeat:Connect(function()
+    if State.Xray then
+        for _,v in ipairs(workspace:GetDescendants()) do
+            if v:IsA("BasePart") then v.LocalTransparencyModifier=0.7 end
+        end
+    else
+        for _,v in ipairs(workspace:GetDescendants()) do
+            if v:IsA("BasePart") then v.LocalTransparencyModifier=0 end
+        end
+    end
 end)
 
--- No Fog
-Toggle("No Fog",300,Config.NoFog,function(v)
-	Config.NoFog = v
-	if v then Lighting.FogEnd = 1e9 end
+-- Lighting
+RunService.Heartbeat:Connect(function()
+    if State.Fullbright then
+        Lighting.Brightness=2; Lighting.ClockTime=14; Lighting.FogEnd=1e5
+    end
+    if State.NoFog then Lighting.FogEnd=1e5 end
 end)
 
--- Reset Character
-Button("Reset Character",340,function()
-	LP.Character:BreakJoints()
+-- FPS Boost
+RunService.Heartbeat:Connect(function()
+    if State.FPS then
+        Lighting.GlobalShadows=false
+        for _,v in ipairs(workspace:GetDescendants()) do
+            if v:IsA("BasePart") then v.Material=Enum.Material.Plastic end
+        end
+    end
 end)
 
--- Rejoin
-Button("Rejoin",380,function()
-	TeleportService:Teleport(game.PlaceId, LP)
+-- BTools
+RunService.Heartbeat:Connect(function()
+    if State.BTools then
+        for _,t in ipairs({"Hammer","Clone","Grab"}) do
+            if not LocalPlayer.Backpack:FindFirstChild(t) then
+                Instance.new("HopperBin", LocalPlayer.Backpack).BinType = Enum.BinType[t]
+            end
+        end
+    end
 end)
-
--- ================== EXTRA BACKGROUND ==================
 
 -- Anti AFK
-LP.Idled:Connect(function()
-	VirtualUser:Button2Down(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
-	wait(1)
-	VirtualUser:Button2Up(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
+LocalPlayer.Idled:Connect(function()
+    if State.AntiAFK then
+        local vu = game:GetService("VirtualUser")
+        vu:Button2Down(Vector2.new(), workspace.CurrentCamera.CFrame)
+        task.wait(1)
+        vu:Button2Up(Vector2.new(), workspace.CurrentCamera.CFrame)
+    end
 end)
 
--- FPS BOOST
-if Config.FPSBoost then
-	for _,v in pairs(workspace:GetDescendants()) do
-		if v:IsA("BasePart") then
-			v.Material = Enum.Material.SmoothPlastic
-			v.Reflectance = 0
-		end
-	end
-end
+-- Click TP
+UIS.InputBegan:Connect(function(i)
+    if State.ClickTP and i.UserInputType==Enum.UserInputType.MouseButton1 then
+        local m = LocalPlayer:GetMouse()
+        if m.Hit then Root().CFrame = m.Hit + Vector3.new(0,3,0) end
+    end
+end)
+
+-- Min button
+MinBtn.MouseButton1Click:Connect(function()
+    State.Minimized = not State.Minimized
+    Body.Visible = not State.Minimized
+    Main.Size = State.Minimized and UDim2.fromScale(0.38,0.08) or UDim2.fromScale(0.38,0.6)
+    SaveCFG()
+end)
