@@ -1,586 +1,141 @@
--- ===========================================
--- Panel Admin dengan Loadstring - Fitur Lengkap
--- ===========================================
-
-local Player = game:GetService("Players").LocalPlayer
-local Mouse = Player:GetMouse()
-local UIS = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-local CoreGui = game:GetService("CoreGui")
-local TweenService = game:GetService("TweenService")
-
--- CONFIGURASI AWAL
-local Settings = {
-    Fly = {
-        Enabled = false,
-        Speed = 50,
-        Keys = {Enum.KeyCode.W, Enum.KeyCode.A, Enum.KeyCode.S, Enum.KeyCode.D}
-    },
-    Speed = {
-        Enabled = false,
-        Value = 50
-    },
-    Jump = {
-        Enabled = false,
-        Value = 50
-    },
-    Noclip = false,
-    ESP = {
-        Enabled = false,
-        Boxes = true,
-        Tracers = true,
-        Names = true,
-        Distance = true,
-        Health = true,
-        TeamColor = true
-    },
-    Xray = false,
-    Fullbright = false,
-    AntiAfk = false,
-    InfiniteJump = false,
-    ClickTP = false,
-    Btools = false,
-    FPSBoost = false
-}
-
--- VARIABEL GLOBAL
-local FlyConnection, NoclipConnection, ESPConnections = {}, {}, {}
-local ESPFolder, BtoolsFolder
-local OriginalFogEnd, OriginalBrightness, OriginalTeams
-
--- ===========================================
--- FUNGSI UTAMA LOADSTRING
--- ===========================================
-
-local AdminPanel = {}
-
-function AdminPanel:CreateGUI()
-    -- Hapus GUI lama jika ada
-    if CoreGui:FindFirstChild("AdminPanelGUI") then
-        CoreGui:FindFirstChild("AdminPanelGUI"):Destroy()
-    end
-    
-    -- Buat ScreenGUI utama
-    local MainGUI = Instance.new("ScreenGui")
-    MainGUI.Name = "AdminPanelGUI"
-    MainGUI.Parent = CoreGui
-    MainGUI.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    MainGUI.ResetOnSpawn = false
-    
-    -- Main Frame
-    local MainFrame = Instance.new("Frame")
-    MainFrame.Name = "MainFrame"
-    MainFrame.Size = UDim2.new(0, 500, 0, 600)
-    MainFrame.Position = UDim2.new(0.5, -250, 0.5, -300)
-    MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-    MainFrame.BorderSizePixel = 0
-    MainFrame.Parent = MainGUI
-    
-    -- Rounded corners
-    local UICorner = Instance.new("UICorner")
-    UICorner.CornerRadius = UDim.new(0, 10)
-    UICorner.Parent = MainFrame
-    
-    -- Top Bar
-    local TopBar = Instance.new("Frame")
-    TopBar.Name = "TopBar"
-    TopBar.Size = UDim2.new(1, 0, 0, 40)
-    TopBar.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
-    TopBar.Parent = MainFrame
-    
-    local Title = Instance.new("TextLabel")
-    Title.Name = "Title"
-    Title.Size = UDim2.new(0, 200, 1, 0)
-    Title.Position = UDim2.new(0, 10, 0, 0)
-    Title.BackgroundTransparency = 1
-    Title.Text = "🚀 Admin Panel v3.0"
-    Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Title.Font = Enum.Font.GothamBold
-    Title.TextSize = 18
-    Title.TextXAlignment = Enum.TextXAlignment.Left
-    Title.Parent = TopBar
-    
-    local CloseButton = Instance.new("TextButton")
-    CloseButton.Name = "CloseButton"
-    CloseButton.Size = UDim2.new(0, 30, 0, 30)
-    CloseButton.Position = UDim2.new(1, -35, 0.5, -15)
-    CloseButton.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
-    CloseButton.Text = "X"
-    CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    CloseButton.Font = Enum.Font.GothamBold
-    CloseButton.TextSize = 14
-    CloseButton.Parent = TopBar
-    
-    local UICorner2 = Instance.new("UICorner")
-    UICorner2.CornerRadius = UDim.new(0, 5)
-    UICorner2.Parent = CloseButton
-    
-    -- Minimize Button
-    local MinimizeButton = Instance.new("TextButton")
-    MinimizeButton.Name = "MinimizeButton"
-    MinimizeButton.Size = UDim2.new(0, 30, 0, 30)
-    MinimizeButton.Position = UDim2.new(1, -70, 0.5, -15)
-    MinimizeButton.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
-    MinimizeButton.Text = "_"
-    MinimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    MinimizeButton.Font = Enum.Font.GothamBold
-    MinimizeButton.TextSize = 14
-    MinimizeButton.Parent = TopBar
-    
-    local UICorner3 = Instance.new("UICorner")
-    UICorner3.CornerRadius = UDim.new(0, 5)
-    UICorner3.Parent = MinimizeButton
-    
-    -- Tab Buttons
-    local TabButtonsFrame = Instance.new("Frame")
-    TabButtonsFrame.Name = "TabButtonsFrame"
-    TabButtonsFrame.Size = UDim2.new(0, 150, 1, -40)
-    TabButtonsFrame.Position = UDim2.new(0, 0, 0, 40)
-    TabButtonsFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-    TabButtonsFrame.Parent = MainFrame
-    
-    local Tabs = {
-        "Player",
-        "Visual",
-        "World",
-        "Teleport",
-        "Misc",
-        "Settings"
-    }
-    
-    local TabButtons = {}
-    local TabContents = Instance.new("Frame")
-    TabContents.Name = "TabContents"
-    TabContents.Size = UDim2.new(1, -150, 1, -40)
-    TabContents.Position = UDim2.new(0, 150, 0, 40)
-    TabContents.BackgroundTransparency = 1
-    TabContents.Parent = MainFrame
-    
-    -- Buat tab dan konten
-    for i, tabName in ipairs(Tabs) do
-        -- Tombol Tab
-        local TabButton = Instance.new("TextButton")
-        TabButton.Name = tabName .. "Tab"
-        TabButton.Size = UDim2.new(1, 0, 0, 40)
-        TabButton.Position = UDim2.new(0, 0, 0, (i-1)*40)
-        TabButton.BackgroundColor3 = i == 1 and Color3.fromRGB(50, 50, 70) or Color3.fromRGB(30, 30, 40)
-        TabButton.Text = tabName
-        TabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-        TabButton.Font = Enum.Font.Gotham
-        TabButton.TextSize = 14
-        TabButton.Parent = TabButtonsFrame
-        
-        TabButtons[tabName] = TabButton
-        
-        -- Konten Tab
-        local TabContent = Instance.new("ScrollingFrame")
-        TabContent.Name = tabName .. "Content"
-        TabContent.Size = UDim2.new(1, 0, 1, 0)
-        TabContent.Position = UDim2.new(0, 0, 0, 0)
-        TabContent.BackgroundTransparency = 1
-        TabContent.BorderSizePixel = 0
-        TabContent.ScrollBarThickness = 4
-        TabContent.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 120)
-        TabContent.Visible = i == 1
-        TabContent.Parent = TabContents
-        
-        local UIListLayout = Instance.new("UIListLayout")
-        UIListLayout.Padding = UDim.new(0, 10)
-        UIListLayout.Parent = TabContent
-        
-        local UIPadding = Instance.new("UIPadding")
-        UIPadding.PaddingLeft = UDim.new(0, 10)
-        UIPadding.PaddingTop = UDim.new(0, 10)
-        UIPadding.Parent = TabContent
-        
-        -- Fungsi klik tab
-        TabButton.MouseButton1Click:Connect(function()
-            for _, btn in pairs(TabButtons) do
-                btn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-            end
-            TabButton.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
-            
-            for _, content in pairs(TabContents:GetChildren()) do
-                if content:IsA("ScrollingFrame") then
-                    content.Visible = false
-                end
-            end
-            TabContent.Visible = true
-        end)
-    end
-    
-    -- ===========================================
-    -- TAB PLAYER
-    -- ===========================================
-    local PlayerTab = TabContents:WaitForChild("PlayerContent")
-    
-    -- Fly
-    self:CreateToggle(PlayerTab, "Fly", "Enable flying", Settings.Fly.Enabled, function(state)
-        Settings.Fly.Enabled = state
-        self:Fly(state)
-    end)
-    
-    self:CreateSlider(PlayerTab, "Fly Speed", 1, 200, Settings.Fly.Speed, function(value)
-        Settings.Fly.Speed = value
-    end)
-    
-    -- Speed
-    self:CreateToggle(PlayerTab, "Speed Hack", "Increase walk speed", Settings.Speed.Enabled, function(state)
-        Settings.Speed.Enabled = state
-        self:SpeedHack(state)
-    end)
-    
-    self:CreateSlider(PlayerTab, "Speed Value", 16, 200, Settings.Speed.Value, function(value)
-        Settings.Speed.Value = value
-        if Settings.Speed.Enabled then
-            self:SpeedHack(true)
-        end
-    end)
-    
-    -- Jump
-    self:CreateToggle(PlayerTab, "High Jump", "Increase jump power", Settings.Jump.Enabled, function(state)
-        Settings.Jump.Enabled = state
-        self:JumpHack(state)
-    end)
-    
-    self:CreateSlider(PlayerTab, "Jump Value", 50, 500, Settings.Jump.Value, function(value)
-        Settings.Jump.Value = value
-        if Settings.Jump.Enabled then
-            self:JumpHack(true)
-        end
-    end)
-    
-    -- Noclip
-    self:CreateToggle(PlayerTab, "Noclip", "Walk through walls", Settings.Noclip, function(state)
-        Settings.Noclip = state
-        self:Noclip(state)
-    end)
-    
-    -- Infinite Jump
-    self:CreateToggle(PlayerTab, "Infinite Jump", "Jump infinitely", Settings.InfiniteJump, function(state)
-        Settings.InfiniteJump = state
-        self:InfiniteJump(state)
-    end)
-    
-    -- Anti-AFK
-    self:CreateToggle(PlayerTab, "Anti-AFK", "Prevent being kicked for AFK", Settings.AntiAfk, function(state)
-        Settings.AntiAfk = state
-        self:AntiAFK(state)
-    end)
-    
-    -- Click Teleport
-    self:CreateToggle(PlayerTab, "Click TP", "Click to teleport", Settings.ClickTP, function(state)
-        Settings.ClickTP = state
-        self:ClickTeleport(state)
-    end)
-    
-    -- ===========================================
-    -- TAB VISUAL
-    -- ===========================================
-    local VisualTab = TabContents:WaitForChild("VisualContent")
-    
-    -- ESP
-    self:CreateToggle(VisualTab, "ESP", "See players through walls", Settings.ESP.Enabled, function(state)
-        Settings.ESP.Enabled = state
-        self:ESP(state)
-    end)
-    
-    self:CreateToggle(VisualTab, "ESP Boxes", "Show boxes around players", Settings.ESP.Boxes, function(state)
-        Settings.ESP.Boxes = state
-        if Settings.ESP.Enabled then
-            self:ESP(true)
-        end
-    end)
-    
-    self:CreateToggle(VisualTab, "ESP Tracers", "Show lines to players", Settings.ESP.Tracers, function(state)
-        Settings.ESP.Tracers = state
-        if Settings.ESP.Enabled then
-            self:ESP(true)
-        end
-    end)
-    
-    self:CreateToggle(VisualTab, "ESP Names", "Show player names", Settings.ESP.Names, function(state)
-        Settings.ESP.Names = state
-        if Settings.ESP.Enabled then
-            self:ESP(true)
-        end
-    end)
-    
-    self:CreateToggle(VisualTab, "ESP Distance", "Show distance", Settings.ESP.Distance, function(state)
-        Settings.ESP.Distance = state
-        if Settings.ESP.Enabled then
-            self:ESP(true)
-        end
-    end)
-    
-    self:CreateToggle(VisualTab, "ESP Health", "Show health", Settings.ESP.Health, function(state)
-        Settings.ESP.Health = state
-        if Settings.ESP.Enabled then
-            self:ESP(true)
-        end
-    end)
-    
-    -- Xray
-    self:CreateToggle(VisualTab, "Xray", "See through walls", Settings.Xray, function(state)
-        Settings.Xray = state
-        self:Xray(state)
-    end)
-    
-    -- Fullbright
-    self:CreateToggle(VisualTab, "Fullbright", "Remove lighting effects", Settings.Fullbright, function(state)
-        Settings.Fullbright = state
-        self:Fullbright(state)
-    end)
-    
-    -- ===========================================
-    -- TAB WORLD
-    -- ===========================================
-    local WorldTab = TabContents:WaitForChild("WorldContent")
-    
-    -- Btools
-    self:CreateToggle(WorldTab, "Btools", "Get building tools", Settings.Btools, function(state)
-        Settings.Btools = state
-        self:Btools(state)
-    end)
-    
-    -- Gravity
-    self:CreateSlider(WorldTab, "Gravity", 0, 196.2, workspace.Gravity, function(value)
-        workspace.Gravity = value
-    end)
-    
-    -- FPS Boost
-    self:CreateToggle(WorldTab, "FPS Boost", "Improve performance", Settings.FPSBoost, function(state)
-        Settings.FPSBoost = state
-        self:FPSBoost(state)
-    end)
-    
-    -- Time
-    self:CreateSlider(WorldTab, "Time of Day", 0, 24, Lighting.ClockTime, function(value)
-        Lighting.ClockTime = value
-    end)
-    
-    -- Fog
-    self:CreateToggle(WorldTab, "Remove Fog", "Disable fog", false, function(state)
-        if state then
-            OriginalFogEnd = Lighting.FogEnd
-            Lighting.FogEnd = 1000000
-        else
-            Lighting.FogEnd = OriginalFogEnd or 100000
-        end
-    end)
-    
-    -- ===========================================
-    -- TAB TELEPORT
-    -- ===========================================
-    local TeleportTab = TabContents:WaitForChild("TeleportContent")
-    
-    -- Player list for teleport
-    local PlayerScroll = Instance.new("ScrollingFrame")
-    PlayerScroll.Name = "PlayerScroll"
-    PlayerScroll.Size = UDim2.new(1, -20, 0, 200)
-    PlayerScroll.Position = UDim2.new(0, 10, 0, 10)
-    PlayerScroll.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-    PlayerScroll.BorderSizePixel = 0
-    PlayerScroll.ScrollBarThickness = 4
-    PlayerScroll.Parent = TeleportTab
-    
-    local PlayerListLayout = Instance.new("UIListLayout")
-    PlayerListLayout.Padding = UDim.new(0, 5)
-    PlayerListLayout.Parent = PlayerScroll
-    
-    self:UpdatePlayerList(PlayerScroll)
-    
-    -- Auto update player list
-    game:GetService("Players").PlayerAdded:Connect(function()
-        self:UpdatePlayerList(PlayerScroll)
-    end)
-    
-    game:GetService("Players").PlayerRemoving:Connect(function()
-        self:UpdatePlayerList(PlayerScroll)
-    end)
-    
-    -- Teleport to location
-    self:CreateButton(TeleportTab, "Teleport to Spawn", function()
-        local spawn = workspace:FindFirstChild("SpawnLocation") or workspace:FindFirstChild("Spawn")
-        if spawn then
-            Player.Character:MoveTo(spawn.Position + Vector3.new(0, 5, 0))
-        end
-    end)
-    
-    -- ===========================================
-    -- TAB MISC
-    -- ===========================================
-    local MiscTab = TabContents:WaitForChild("MiscContent")
-    
-    -- Rejoin
-    self:CreateButton(MiscTab, "Rejoin Server", function()
-        game:GetService("TeleportService"):Teleport(game.PlaceId, Player)
-    end)
-    
-    -- Server Hop
-    self:CreateButton(MiscTab, "Server Hop", function()
-        local servers = game:GetService("HttpService"):JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
-        for _, server in ipairs(servers.data) do
-            if server.playing < server.maxPlayers and server.id ~= game.JobId then
-                game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, server.id, Player)
-                break
-            end
-        end
-    end)
-    
-    -- Reset Character
-    self:CreateButton(MiscTab, "Reset Character", function()
-        Player.Character:BreakJoints()
-    end)
-    
-    -- ===========================================
-    -- TAB SETTINGS
-    -- ===========================================
-    local SettingsTab = TabContents:WaitForChild("SettingsContent")
-    
-    -- UI Color
-    self:CreateColorPicker(SettingsTab, "UI Color", Color3.fromRGB(50, 50, 70), function(color)
-        MainFrame.BackgroundColor3 = color
-        TopBar.BackgroundColor3 = Color3.fromRGB(color.r * 1.4, color.g * 1.4, color.b * 1.4)
-    end)
-    
-    -- Transparent UI
-    self:CreateToggle(SettingsTab, "Transparent UI", false, function(state)
-        MainFrame.BackgroundTransparency = state and 0.3 or 0
-        TopBar.BackgroundTransparency = state and 0.3 or 0
-    end)
-    
-    -- Save Settings
-    self:CreateButton(SettingsTab, "Save Settings", function()
-        self:SaveSettings()
-    end)
-    
-    -- Load Settings
-    self:CreateButton(SettingsTab, "Load Settings", function()
-        self:LoadSettings()
-    end)
-    
-    -- Destroy GUI
-    self:CreateButton(SettingsTab, "Destroy GUI", function()
-        MainGUI:Destroy()
-    end)
-    
-    -- ===========================================
-    -- FUNGSI GUI INTERACTION
-    -- ===========================================
-    
-    -- Drag GUI
-    local dragging, dragInput, dragStart, startPos
-    
-    TopBar.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            dragStart = input.Position
-            startPos = MainFrame.Position
-            
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
-            end)
-        end
-    end)
-    
-    TopBar.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement then
-            dragInput = input
-        end
-    end)
-    
-    UIS.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            local delta = input.Position - dragStart
-            MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
-    
-    -- Close button
-    CloseButton.MouseButton1Click:Connect(function()
-        MainGUI:Destroy()
-    end)
-    
-    -- Minimize button
-    local minimized = false
-    local originalSize = MainFrame.Size
-    MinimizeButton.MouseButton1Click:Connect(function()
-        minimized = not minimized
-        if minimized then
-            for _, content in pairs(TabContents:GetChildren()) do
-                if content:IsA("ScrollingFrame") then
-                    content.Visible = false
-                end
-            end
-            MainFrame.Size = UDim2.new(0, 500, 0, 80)
-            MinimizeButton.Text = "□"
-        else
-            TabContents.PlayerContent.Visible = true
-            MainFrame.Size = originalSize
-            MinimizeButton.Text = "_"
-        end
-    end)
-    
-    -- Keybind untuk toggle GUI (F4)
-    UIS.InputBegan:Connect(function(input, processed)
-        if not processed and input.KeyCode == Enum.KeyCode.F4 then
-            MainGUI.Enabled = not MainGUI.Enabled
-        end
-    end)
-    
-    return MainGUI
+-- CLEAN FULL FEATURE HUB
+if game.CoreGui:FindFirstChild("CleanHub") then
+    game.CoreGui.CleanHub:Destroy()
 end
 
--- ===========================================
--- FUNGSI KOMPONEN GUI
--- ===========================================
+-- SERVICES
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
+local TPService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
+local LP = Players.LocalPlayer
 
-function AdminPanel:CreateToggle(parent, text, description, default, callback)
-    local ToggleFrame = Instance.new("Frame")
-    ToggleFrame.Size = UDim2.new(1, -20, 0, 40)
-    ToggleFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-    ToggleFrame.BorderSizePixel = 0
-    ToggleFrame.Parent = parent
-    
-    local UICorner = Instance.new("UICorner")
-    UICorner.CornerRadius = UDim.new(0, 5)
-    UICorner.Parent = ToggleFrame
-    
-    local ToggleButton = Instance.new("TextButton")
-    ToggleButton.Size = UDim2.new(0, 60, 0, 25)
-    ToggleButton.Position = UDim2.new(1, -70, 0.5, -12.5)
-    ToggleButton.BackgroundColor3 = default and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(200, 50, 50)
-    ToggleButton.Text = default and "ON" or "OFF"
-    ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    ToggleButton.Font = Enum.Font.GothamBold
-    ToggleButton.TextSize = 12
-    ToggleButton.Parent = ToggleFrame
-    
-    local UICorner2 = Instance.new("UICorner")
-    UICorner2.CornerRadius = UDim.new(0, 5)
-    UICorner2.Parent = ToggleButton
-    
-    local ToggleLabel = Instance.new("TextLabel")
-    ToggleLabel.Size = UDim2.new(0, 200, 1, 0)
-    ToggleLabel.Position = UDim2.new(0, 10, 0, 0)
-    ToggleLabel.BackgroundTransparency = 1
-    ToggleLabel.Text = text
-    ToggleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    ToggleLabel.Font = Enum.Font.Gotham
-    ToggleLabel.TextSize = 14
-    ToggleLabel.TextXAlignment = Enum.TextXAlignment.Left
-    ToggleLabel.Parent = ToggleFrame
-    
-    if description then
-        ToggleLabel.Text = text
-        local DescLabel = Instance.new("TextLabel")
-        DescLabel.Size = UDim2.new(0, 200, 0, 15)
-        DescLabel.Position = UDim2.new(0, 10, 0, 20)
-        DescLabel.BackgroundTransparency = 1
-        DescLabel.Text = description
-        DescLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
-        DescLabel.Font = Enum.Font.Gotham
-       
+-- GUI
+local Gui = Instance.new("ScreenGui", game.CoreGui)
+Gui.Name = "CleanHub"
+
+local Main = Instance.new("Frame", Gui)
+Main.Size = UDim2.new(0, 540, 0, 380)
+Main.Position = UDim2.new(0.5, -270, 0.5, -190)
+Main.BackgroundColor3 = Color3.fromRGB(22,22,22)
+Main.BorderSizePixel = 0
+Main.Active = true
+Main.Draggable = true
+
+-- CONFIG
+local Config = {
+    WalkSpeed = 16,
+    JumpPower = 50,
+    FlySpeed = 30,
+    Time = 14,
+    Noclip = false,
+    InfJump = false,
+    Fullbright = false,
+    NoFog = false
+}
+
+-- SAVE / LOAD
+local function SaveConfig()
+    writefile("CleanHub.json", HttpService:JSONEncode(Config))
+end
+
+local function LoadConfig()
+    if isfile("CleanHub.json") then
+        Config = HttpService:JSONDecode(readfile("CleanHub.json"))
+    end
+end
+
+LoadConfig()
+
+-- CHARACTER
+local function GetChar()
+    local c = LP.Character or LP.CharacterAdded:Wait()
+    return c, c:WaitForChild("Humanoid"), c:WaitForChild("HumanoidRootPart")
+end
+
+-- ================= PLAYER FEATURES =================
+
+-- NOCLIP
+RunService.Stepped:Connect(function()
+    if Config.Noclip then
+        local char = LP.Character
+        if char then
+            for _,v in pairs(char:GetDescendants()) do
+                if v:IsA("BasePart") then
+                    v.CanCollide = false
+                end
+            end
+        end
+    end
+end)
+
+-- INFINITE JUMP
+UIS.JumpRequest:Connect(function()
+    if Config.InfJump then
+        local _,hum = GetChar()
+        hum:ChangeState(Enum.HumanoidStateType.Jumping)
+    end
+end)
+
+-- FULLBRIGHT
+RunService.RenderStepped:Connect(function()
+    if Config.Fullbright then
+        Lighting.Brightness = 3
+        Lighting.ClockTime = 14
+        Lighting.FogEnd = 1e9
+    end
+end)
+
+-- NO FOG
+if Config.NoFog then
+    Lighting.FogEnd = 1e9
+end
+
+-- CLICK TP
+UIS.InputBegan:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 and UIS:IsKeyDown(Enum.KeyCode.LeftControl) then
+        local mouse = LP:GetMouse()
+        if mouse.Hit then
+            local _,_,hrp = GetChar()
+            hrp.CFrame = mouse.Hit + Vector3.new(0,3,0)
+        end
+    end
+end)
+
+-- ================= BUTTON EXAMPLES =================
+
+local function Button(text, y, callback)
+    local b = Instance.new("TextButton", Main)
+    b.Size = UDim2.new(0,240,0,32)
+    b.Position = UDim2.new(0,20,0,y)
+    b.Text = text
+    b.BackgroundColor3 = Color3.fromRGB(35,35,35)
+    b.TextColor3 = Color3.new(1,1,1)
+    b.MouseButton1Click:Connect(callback)
+end
+
+Button("Toggle Noclip", 40, function()
+    Config.Noclip = not Config.Noclip
+end)
+
+Button("Infinite Jump", 80, function()
+    Config.InfJump = not Config.InfJump
+end)
+
+Button("Fullbright", 120, function()
+    Config.Fullbright = not Config.Fullbright
+end)
+
+Button("Reset Character", 160, function()
+    LP.Character:BreakJoints()
+end)
+
+Button("Rejoin", 200, function()
+    TPService:Teleport(game.PlaceId, LP)
+end)
+
+Button("Save Config", 240, SaveConfig)
+
+-- ================= END =================
