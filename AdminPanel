@@ -1,141 +1,206 @@
--- CLEAN FULL FEATURE HUB
-if game.CoreGui:FindFirstChild("CleanHub") then
-    game.CoreGui.CleanHub:Destroy()
-end
+--// CLEANHUB FULL ADMIN PANEL
+--// by Someone
+--// executor required (supports writefile)
 
--- SERVICES
+-- ================== SERVICES ==================
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local TeleportService = game:GetService("TeleportService")
 local Lighting = game:GetService("Lighting")
-local TPService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
+local VirtualUser = game:GetService("VirtualUser")
 local LP = Players.LocalPlayer
 
--- GUI
-local Gui = Instance.new("ScreenGui", game.CoreGui)
-Gui.Name = "CleanHub"
-
-local Main = Instance.new("Frame", Gui)
-Main.Size = UDim2.new(0, 540, 0, 380)
-Main.Position = UDim2.new(0.5, -270, 0.5, -190)
-Main.BackgroundColor3 = Color3.fromRGB(22,22,22)
-Main.BorderSizePixel = 0
-Main.Active = true
-Main.Draggable = true
-
--- CONFIG
+-- ================== CONFIG ==================
+local ConfigFile = "CleanHub_Config.json"
 local Config = {
-    WalkSpeed = 16,
-    JumpPower = 50,
-    FlySpeed = 30,
-    Time = 14,
-    Noclip = false,
-    InfJump = false,
-    Fullbright = false,
-    NoFog = false
+	WalkSpeed = 16,
+	JumpPower = 50,
+	FlySpeed = 50,
+	Time = 14,
+	Noclip = false,
+	InfJump = false,
+	Fullbright = false,
+	NoFog = false,
+	ESP = false,
+	Xray = false,
+	FPSBoost = false
 }
 
--- SAVE / LOAD
+-- ================== SAVE / LOAD ==================
 local function SaveConfig()
-    writefile("CleanHub.json", HttpService:JSONEncode(Config))
+	if writefile then
+		writefile(ConfigFile, HttpService:JSONEncode(Config))
+	end
 end
 
 local function LoadConfig()
-    if isfile("CleanHub.json") then
-        Config = HttpService:JSONDecode(readfile("CleanHub.json"))
-    end
+	if readfile and isfile and isfile(ConfigFile) then
+		Config = HttpService:JSONDecode(readfile(ConfigFile))
+	end
 end
-
 LoadConfig()
 
--- CHARACTER
+-- ================== CHARACTER ==================
 local function GetChar()
-    local c = LP.Character or LP.CharacterAdded:Wait()
-    return c, c:WaitForChild("Humanoid"), c:WaitForChild("HumanoidRootPart")
+	local c = LP.Character or LP.CharacterAdded:Wait()
+	return c, c:WaitForChild("Humanoid"), c:WaitForChild("HumanoidRootPart")
 end
 
--- ================= PLAYER FEATURES =================
+-- ================== UI ==================
+local Gui = Instance.new("ScreenGui", game.CoreGui)
+Gui.Name = "CleanHub"
+Gui.ResetOnSpawn = false
 
--- NOCLIP
-RunService.Stepped:Connect(function()
-    if Config.Noclip then
-        local char = LP.Character
-        if char then
-            for _,v in pairs(char:GetDescendants()) do
-                if v:IsA("BasePart") then
-                    v.CanCollide = false
-                end
-            end
-        end
-    end
-end)
+local Main = Instance.new("Frame", Gui)
+Main.Size = UDim2.new(0,520,0,420)
+Main.Position = UDim2.new(0.5,-260,0.5,-210)
+Main.BackgroundColor3 = Color3.fromRGB(25,25,25)
+Main.Active = true
+Main.Draggable = true
 
--- INFINITE JUMP
-UIS.JumpRequest:Connect(function()
-    if Config.InfJump then
-        local _,hum = GetChar()
-        hum:ChangeState(Enum.HumanoidStateType.Jumping)
-    end
-end)
+local UIStroke = Instance.new("UIStroke", Main)
+UIStroke.Thickness = 2
+UIStroke.Color = Color3.fromRGB(90,90,90)
 
--- FULLBRIGHT
-RunService.RenderStepped:Connect(function()
-    if Config.Fullbright then
-        Lighting.Brightness = 3
-        Lighting.ClockTime = 14
-        Lighting.FogEnd = 1e9
-    end
-end)
+local Title = Instance.new("TextLabel", Main)
+Title.Size = UDim2.new(1,0,0,40)
+Title.Text = "CLEANHUB — FULL ADMIN"
+Title.TextColor3 = Color3.new(1,1,1)
+Title.BackgroundTransparency = 1
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 18
 
--- NO FOG
-if Config.NoFog then
-    Lighting.FogEnd = 1e9
-end
-
--- CLICK TP
-UIS.InputBegan:Connect(function(i)
-    if i.UserInputType == Enum.UserInputType.MouseButton1 and UIS:IsKeyDown(Enum.KeyCode.LeftControl) then
-        local mouse = LP:GetMouse()
-        if mouse.Hit then
-            local _,_,hrp = GetChar()
-            hrp.CFrame = mouse.Hit + Vector3.new(0,3,0)
-        end
-    end
-end)
-
--- ================= BUTTON EXAMPLES =================
-
+-- ================== UI UTILS ==================
 local function Button(text, y, callback)
-    local b = Instance.new("TextButton", Main)
-    b.Size = UDim2.new(0,240,0,32)
-    b.Position = UDim2.new(0,20,0,y)
-    b.Text = text
-    b.BackgroundColor3 = Color3.fromRGB(35,35,35)
-    b.TextColor3 = Color3.new(1,1,1)
-    b.MouseButton1Click:Connect(callback)
+	local b = Instance.new("TextButton", Main)
+	b.Size = UDim2.new(0,240,0,32)
+	b.Position = UDim2.new(0,20,0,y)
+	b.Text = text
+	b.Font = Enum.Font.Gotham
+	b.TextSize = 14
+	b.TextColor3 = Color3.new(1,1,1)
+	b.BackgroundColor3 = Color3.fromRGB(40,40,40)
+	b.MouseButton1Click:Connect(callback)
+	return b
 end
 
-Button("Toggle Noclip", 40, function()
-    Config.Noclip = not Config.Noclip
+local function Toggle(text, y, state, callback)
+	local t = Button(text.." : "..tostring(state), y, function()
+		state = not state
+		t.Text = text.." : "..tostring(state)
+		callback(state)
+	end)
+end
+
+local function Box(text, y, default, callback)
+	local b = Instance.new("TextBox", Main)
+	b.Size = UDim2.new(0,240,0,32)
+	b.Position = UDim2.new(0,20,0,y)
+	b.Text = text..": "..tostring(default)
+	b.BackgroundColor3 = Color3.fromRGB(40,40,40)
+	b.TextColor3 = Color3.new(1,1,1)
+	b.FocusLost:Connect(function()
+		local n = tonumber(b.Text:match("%d+"))
+		if n then callback(n) end
+	end)
+end
+
+-- ================== FEATURES ==================
+
+-- WalkSpeed
+Box("WalkSpeed",60,Config.WalkSpeed,function(v)
+	Config.WalkSpeed = math.clamp(v,1,500)
+	GetChar():WaitForChild("Humanoid").WalkSpeed = Config.WalkSpeed
+	SaveConfig()
 end)
 
-Button("Infinite Jump", 80, function()
-    Config.InfJump = not Config.InfJump
+-- JumpPower
+Box("JumpPower",100,Config.JumpPower,function(v)
+	Config.JumpPower = math.clamp(v,1,500)
+	GetChar():WaitForChild("Humanoid").JumpPower = Config.JumpPower
+	SaveConfig()
 end)
 
-Button("Fullbright", 120, function()
-    Config.Fullbright = not Config.Fullbright
+-- Noclip
+Toggle("Noclip",140,Config.Noclip,function(v)
+	Config.Noclip = v
 end)
 
-Button("Reset Character", 160, function()
-    LP.Character:BreakJoints()
+RunService.Stepped:Connect(function()
+	if Config.Noclip then
+		for _,v in pairs(LP.Character:GetDescendants()) do
+			if v:IsA("BasePart") then v.CanCollide = false end
+		end
+	end
 end)
 
-Button("Rejoin", 200, function()
-    TPService:Teleport(game.PlaceId, LP)
+-- Infinite Jump
+Toggle("Infinite Jump",180,Config.InfJump,function(v)
+	Config.InfJump = v
 end)
 
-Button("Save Config", 240, SaveConfig)
+UIS.JumpRequest:Connect(function()
+	if Config.InfJump then
+		GetChar():WaitForChild("Humanoid"):ChangeState("Jumping")
+	end
+end)
 
--- ================= END =================
+-- Click Teleport
+Toggle("Click TP",220,false,function(v)
+	if v then
+		local con
+		con = UIS.InputBegan:Connect(function(i,g)
+			if i.UserInputType == Enum.UserInputType.MouseButton1 then
+				local pos = LP:GetMouse().Hit.p
+				GetChar():WaitForChild("HumanoidRootPart").CFrame = CFrame.new(pos+Vector3.new(0,3,0))
+			end
+		end)
+	end
+end)
+
+-- Fullbright
+Toggle("Fullbright",260,Config.Fullbright,function(v)
+	Config.Fullbright = v
+	if v then
+		Lighting.Brightness = 3
+		Lighting.ClockTime = 14
+		Lighting.FogEnd = 1e9
+	end
+end)
+
+-- No Fog
+Toggle("No Fog",300,Config.NoFog,function(v)
+	Config.NoFog = v
+	if v then Lighting.FogEnd = 1e9 end
+end)
+
+-- Reset Character
+Button("Reset Character",340,function()
+	LP.Character:BreakJoints()
+end)
+
+-- Rejoin
+Button("Rejoin",380,function()
+	TeleportService:Teleport(game.PlaceId, LP)
+end)
+
+-- ================== EXTRA BACKGROUND ==================
+
+-- Anti AFK
+LP.Idled:Connect(function()
+	VirtualUser:Button2Down(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
+	wait(1)
+	VirtualUser:Button2Up(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
+end)
+
+-- FPS BOOST
+if Config.FPSBoost then
+	for _,v in pairs(workspace:GetDescendants()) do
+		if v:IsA("BasePart") then
+			v.Material = Enum.Material.SmoothPlastic
+			v.Reflectance = 0
+		end
+	end
+end
