@@ -1,0 +1,371 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local camera = workspace.CurrentCamera
+
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "AdminPanel"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = playerGui
+
+-- Main Frame
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 350, 0, 450)
+mainFrame.Position = UDim2.new(0.5, -175, 0.5, -225)
+mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = screenGui
+
+-- Sidebar Frame (Left)
+local sidebar = Instance.new("Frame")
+sidebar.Size = UDim2.new(0, 120, 1, 0)
+sidebar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+sidebar.Parent = mainFrame
+
+-- Sidebar Buttons (tabs)
+local sidebarButtons = {}
+local sidebarItems = {"Dashboard", "Automation", "Teleport", "Shop", "Camera", "Webhook"}
+
+local function createSidebarButton(name, posY)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -10, 0, 40)
+    btn.Position = UDim2.new(0, 5, 0, posY)
+    btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 18
+    btn.Text = name
+    btn.Parent = sidebar
+    return btn
+end
+
+for i, name in ipairs(sidebarItems) do
+    local btn = createSidebarButton(name, (i - 1) * 45 + 10)
+    sidebarButtons[name] = btn
+end
+
+-- Top Tab Frame (for sub-menu tabs)
+local tabFrame = Instance.new("Frame")
+tabFrame.Size = UDim2.new(1, -130, 0, 40)
+tabFrame.Position = UDim2.new(0, 130, 0, 10)
+tabFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+tabFrame.Parent = mainFrame
+
+local tabButtons = {}
+local currentTab = nil
+
+local function clearTabs()
+    for _, child in ipairs(tabFrame:GetChildren()) do
+        if child:IsA("TextButton") then
+            child:Destroy()
+        end
+    end
+    tabButtons = {}
+end
+
+-- Content Frame (Below tabs)
+local contentFrame = Instance.new("Frame")
+contentFrame.Size = UDim2.new(1, -130, 1, -60)
+contentFrame.Position = UDim2.new(0, 130, 0, 50)
+contentFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+contentFrame.Parent = mainFrame
+
+local function clearContent()
+    for _, child in ipairs(contentFrame:GetChildren()) do
+        child:Destroy()
+    end
+end
+
+-- Helper: create toggle switch
+local function createToggle(parent, text, posY, callback)
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0.7, 0, 0, 30)
+    label.Position = UDim2.new(0, 10, 0, posY)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.new(1, 1, 1)
+    label.Font = Enum.Font.SourceSans
+    label.TextSize = 18
+    label.Text = text
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = parent
+
+    local toggle = Instance.new("TextButton")
+    toggle.Size = UDim2.new(0, 50, 0, 30)
+    toggle.Position = UDim2.new(0.75, 0, 0, posY)
+    toggle.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+    toggle.Text = "Off"
+    toggle.TextColor3 = Color3.new(1, 1, 1)
+    toggle.Font = Enum.Font.SourceSansBold
+    toggle.TextSize = 18
+    toggle.Parent = parent
+
+    local enabled = false
+    toggle.MouseButton1Click:Connect(function()
+        enabled = not enabled
+        if enabled then
+            toggle.Text = "On"
+            toggle.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+        else
+            toggle.Text = "Off"
+            toggle.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+        end
+        if callback then
+            callback(enabled)
+        end
+    end)
+    return toggle
+end
+
+-- Helper: create slider
+local function createSlider(parent, text, posY, min, max, default, callback)
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0.4, 0, 0, 30)
+    label.Position = UDim2.new(0, 10, 0, posY)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.new(1, 1, 1)
+    label.Font = Enum.Font.SourceSans
+    label.TextSize = 18
+    label.Text = text
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = parent
+
+    local sliderFrame = Instance.new("Frame")
+    sliderFrame.Size = UDim2.new(0.5, 0, 0, 30)
+    sliderFrame.Position = UDim2.new(0.45, 0, 0, posY)
+    sliderFrame.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+    sliderFrame.Parent = parent
+
+    local fill = Instance.new("Frame")
+    fill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
+    fill.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+    fill.Parent = sliderFrame
+
+    local dragging = false
+    sliderFrame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+        end
+    end)
+    sliderFrame.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+    sliderFrame.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local pos = math.clamp(input.Position.X - sliderFrame.AbsolutePosition.X, 0, sliderFrame.AbsoluteSize.X)
+            fill.Size = UDim2.new(pos / sliderFrame.AbsoluteSize.X, 0, 1, 0)
+            local value = min + (pos / sliderFrame.AbsoluteSize.X) * (max - min)
+            if callback then
+                callback(value)
+            end
+        end
+    end)
+end
+
+-- Fly feature
+local flyEnabled = false
+local bodyVelocity = nil
+local bodyGyro = nil
+
+local function toggleFly(state)
+    if state then
+        local hrp = character:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
+        bodyVelocity = Instance.new("BodyVelocity")
+        bodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+        bodyVelocity.Velocity = Vector3.new(0,0,0)
+        bodyVelocity.Parent = hrp
+
+        bodyGyro = Instance.new("BodyGyro")
+        bodyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+        bodyGyro.CFrame = hrp.CFrame
+        bodyGyro.Parent = hrp
+
+        flyEnabled = true
+        RunService:BindToRenderStep("Fly", Enum.RenderPriority.Character.Value, function()
+            if not flyEnabled then return end
+            local moveDir = Vector3.new()
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + workspace.CurrentCamera.CFrame.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - workspace.CurrentCamera.CFrame.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - workspace.CurrentCamera.CFrame.RightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + workspace.CurrentCamera.CFrame.RightVector end
+            moveDir = Vector3.new(moveDir.X, 0, moveDir.Z).Unit * (humanoid.WalkSpeed or 16)
+            if moveDir ~= moveDir then moveDir = Vector3.new(0,0,0) end -- handle NaN
+
+            bodyVelocity.Velocity = moveDir + Vector3.new(0, 0, 0)
+            bodyGyro.CFrame = workspace.CurrentCamera.CFrame
+        end)
+    else
+        flyEnabled = false
+        RunService:UnbindFromRenderStep("Fly")
+        if bodyVelocity then bodyVelocity:Destroy() bodyVelocity = nil end
+        if bodyGyro then bodyGyro:Destroy() bodyGyro = nil end
+    end
+end
+
+-- Noclip (tembus)
+local noclipEnabled = false
+local function toggleNoclip(state)
+    noclipEnabled = state
+    if noclipEnabled then
+        RunService.Stepped:Connect(function()
+            for _, part in ipairs(character:GetChildren()) do
+                if part:IsA("BasePart") and part.CanCollide and part.Name ~= "HumanoidRootPart" then
+                    part.CanCollide = false
+                end
+            end
+        end)
+    else
+        for _, part in ipairs(character:GetChildren()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = true
+            end
+        end
+    end
+end
+
+-- Speed
+local function setSpeed(value)
+    humanoid.WalkSpeed = math.clamp(value, 16, 250)
+end
+
+-- Max Zoom (camera)
+local maxZoomEnabled = false
+local defaultMaxZoom = 400
+local function toggleMaxZoom(state)
+    maxZoomEnabled = state
+    if maxZoomEnabled then
+        camera.CameraMaxZoomDistance = defaultMaxZoom
+    else
+        camera.CameraMaxZoomDistance = 50
+    end
+end
+
+-- Menu tabs per sidebar item
+local menuTabs = {
+    Dashboard = {"Main"},
+    Automation = {"Fly", "Speed", "Noclip", "MaxZoom"},
+    Teleport = {"(No Feature)"},
+    Shop = {"(No Feature)"},
+    Camera = {"Settings"},
+    Webhook = {"Settings"},
+}
+
+-- Load tabs
+local function loadTabs(menuName)
+    clearTabs()
+    local tabs = menuTabs[menuName]
+    if not tabs then return end
+    local buttonWidth = (tabFrame.AbsoluteSize.X - 20) / #tabs
+    for i, tabName in ipairs(tabs) do
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(0, buttonWidth, 1, -10)
+        btn.Position = UDim2.new(0, (i-1)*buttonWidth + 10, 0, 5)
+        btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        btn.Text = tabName
+        btn.TextColor3 = Color3.new(1,1,1)
+        btn.Font = Enum.Font.SourceSansBold
+        btn.TextSize = 16
+        btn.Parent = tabFrame
+
+        btn.MouseButton1Click:Connect(function()
+            loadTabContent(menuName, tabName)
+            for _, b in pairs(tabButtons) do
+                b.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+            end
+            btn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+        end)
+
+        tabButtons[tabName] = btn
+    end
+
+    if #tabs > 0 then
+        tabButtons[tabs[1]].BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+        loadTabContent(menuName, tabs[1])
+    end
+end
+
+-- Load content per tab
+function loadTabContent(menuName, tabName)
+    clearContent()
+
+    if menuName == "Automation" then
+        if tabName == "Fly" then
+            createToggle(contentFrame, "Fly (Terbang)", 10, toggleFly)
+        elseif tabName == "Speed" then
+            createSlider(contentFrame, "Speed", 10, 16, 250, humanoid.WalkSpeed, setSpeed)
+        elseif tabName == "Noclip" then
+            createToggle(contentFrame, "Noclip (Tembus)", 10, toggleNoclip)
+        elseif tabName == "MaxZoom" then
+            createToggle(contentFrame, "Max Zoom Camera", 10, toggleMaxZoom)
+        end
+    elseif menuName == "Dashboard" then
+        local lbl = Instance.new("TextLabel")
+        lbl.Size = UDim2.new(1, -20, 0, 50)
+        lbl.Position = UDim2.new(0, 10, 0, 10)
+        lbl.BackgroundTransparency = 1
+        lbl.Text = "Welcome to Admin Panel"
+        lbl.TextColor3 = Color3.new(1,1,1)
+        lbl.Font = Enum.Font.SourceSansBold
+        lbl.TextSize = 24
+        lbl.Parent = contentFrame
+    elseif menuName == "Shop" or menuName == "Teleport" then
+        local lbl = Instance.new("TextLabel")
+        lbl.Size = UDim2.new(1, -20, 0, 50)
+        lbl.Position = UDim2.new(0, 10, 0, 10)
+        lbl.BackgroundTransparency = 1
+        lbl.Text = "No features in this menu"
+        lbl.TextColor3 = Color3.new(1,1,1)
+        lbl.Font = Enum.Font.SourceSansItalic
+        lbl.TextSize = 20
+        lbl.Parent = contentFrame
+    elseif menuName == "Camera" then
+        if tabName == "Settings" then
+            createToggle(contentFrame, "Enable Free Camera Mode", 10, function(enabled)
+                if enabled then
+                    camera.CameraType = Enum.CameraType.Scriptable
+                else
+                    camera.CameraType = Enum.CameraType.Custom
+                end
+            end)
+            createSlider(contentFrame, "Camera Speed", 50, 0.1, 10, 1, function(value)
+                -- Kamu bisa tambahkan script kontrol kecepatan kamera custom di sini
+                print("Camera speed set to", value)
+            end)
+        end
+    elseif menuName == "Webhook" then
+        if tabName == "Settings" then
+            createToggle(contentFrame, "Enable Webhook", 10, function(enabled)
+                print("Webhook enabled:", enabled)
+            end)
+        end
+    end
+end
+
+-- Initial load
+local currentMenu = sidebarItems[1]
+loadTabs(currentMenu)
+
+-- Sidebar button events
+for name, btn in pairs(sidebarButtons) do
+    btn.MouseButton1Click:Connect(function()
+        currentMenu = name
+        loadTabs(name)
+        -- Highlight sidebar buttons
+        for _, b in pairs(sidebarButtons) do
+            b.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        end
+        btn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+    end)
+end
+
+-- Highlight first sidebar button on start
+sidebarButtons[currentMenu].BackgroundColor3 = Color3.fromRGB(0, 170, 255)
