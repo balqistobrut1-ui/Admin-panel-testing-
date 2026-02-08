@@ -1,8 +1,5 @@
---// 🦖 T-REX HUB | Final Build
---// Mobile + PC | Single File | Stable
-
-if getgenv().TREX_LOADED then return end
-getgenv().TREX_LOADED = true
+--// T-REX HUB | Full Admin Panel
+--// Mobile-friendly | Single File
 
 -- Services
 local Players = game:GetService("Players")
@@ -12,316 +9,411 @@ local TweenService = game:GetService("TweenService")
 local Lighting = game:GetService("Lighting")
 local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
+local LocalPlayer = Players.LocalPlayer
 
-local LP = Players.LocalPlayer
-local Mouse = LP:GetMouse()
-
--- Character utils
-local function Char() return LP.Character or LP.CharacterAdded:Wait() end
-local function Hum() return Char():WaitForChild("Humanoid") end
-local function Root() return Char():WaitForChild("HumanoidRootPart") end
-
--- ================= STATE =================
+-- State
 local State = {
     WalkSpeed = 16,
     Fly = false,
     FlySpeed = 60,
     InfiniteJump = false,
     Noclip = false,
-
     ESP = false,
     Xray = false,
     Fullbright = false,
     NoFog = false,
-
     FPS = false,
     BTools = false,
     AntiAFK = true,
-
     ClickTP = false,
-
-    Accent = Color3.fromRGB(0,200,120),
+    Accent = Color3.fromRGB(0, 200, 120),
     Minimized = false,
 }
 
--- ================= CONFIG =================
+-- File
 local CFG = "TREX_HUB_CFG.json"
-local function Save()
-    if writefile then writefile(CFG, HttpService:JSONEncode(State)) end
+local function SaveCFG()
+    if writefile then
+        writefile(CFG, HttpService:JSONEncode(State))
+    end
 end
-local function Load()
+local function LoadCFG()
     if readfile and isfile and isfile(CFG) then
-        local ok,data = pcall(function()
+        local ok, data = pcall(function()
             return HttpService:JSONDecode(readfile(CFG))
         end)
-        if ok then
+        if ok and type(data)=="table" then
             for k,v in pairs(data) do State[k]=v end
         end
     end
 end
-Load()
+LoadCFG()
 
--- ================= UI =================
-local GUI = Instance.new("ScreenGui", game.CoreGui)
-GUI.Name = "TREX_HUB"
+-- Utils
+local function Char()
+    return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+end
+local function Hum()
+    return Char():WaitForChild("Humanoid")
+end
+local function Root()
+    return Char():WaitForChild("HumanoidRootPart")
+end
 
-local Main = Instance.new("Frame", GUI)
-Main.Size = UDim2.fromScale(0.4,0.6)
-Main.Position = UDim2.fromScale(0.3,0.2)
+-- UI Base
+local gui = Instance.new("ScreenGui")
+gui.Name = "TREX_HUB"
+gui.Parent = game.CoreGui
+
+local Main = Instance.new("Frame", gui)
+Main.Size = UDim2.fromScale(0.38,0.6)
+Main.Position = UDim2.fromScale(0.31,0.2)
 Main.BackgroundColor3 = Color3.fromRGB(20,20,20)
 Main.BorderSizePixel = 0
 Main.Active = true
 Main.Draggable = true
 Instance.new("UICorner", Main).CornerRadius = UDim.new(0,14)
 
--- Top bar
 local Top = Instance.new("Frame", Main)
-Top.Size = UDim2.new(1,0,0,40)
-Top.BackgroundColor3 = Color3.fromRGB(15,15,15)
+Top.Size = UDim2.new(1,0,0,42)
+Top.BackgroundColor3 = Color3.fromRGB(16,16,16)
 Top.BorderSizePixel = 0
 Instance.new("UICorner", Top).CornerRadius = UDim.new(0,14)
 
 local Title = Instance.new("TextLabel", Top)
+Title.Size = UDim2.new(1,-80,1,0)
+Title.Position = UDim2.new(0,16,0,0)
 Title.Text = "🦖 T-REX HUB"
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.TextColor3 = Color3.fromRGB(235,235,235)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 16
-Title.TextColor3 = Color3.new(1,1,1)
 Title.BackgroundTransparency = 1
-Title.Position = UDim2.new(0,14,0,0)
-Title.Size = UDim2.new(1,-120,1,0)
-Title.TextXAlignment = Left
 
--- Buttons
-local function TopBtn(txt,x)
-    local b = Instance.new("TextButton", Top)
-    b.Text = txt
-    b.Font = Enum.Font.GothamBold
-    b.TextSize = 16
-    b.TextColor3 = Color3.new(1,1,1)
-    b.Size = UDim2.new(0,30,0,22)
-    b.Position = UDim2.new(1,x,0.5,-11)
-    b.BackgroundColor3 = Color3.fromRGB(35,35,35)
-    b.BorderSizePixel = 0
-    Instance.new("UICorner", b).CornerRadius = UDim.new(0,6)
-    return b
-end
+local MinBtn = Instance.new("TextButton", Top)
+MinBtn.Size = UDim2.new(0,32,0,24)
+MinBtn.Position = UDim2.new(1,-40,0,9)
+MinBtn.Text = "—" -- initial minimize sign
+MinBtn.Font = Enum.Font.GothamBold
+MinBtn.TextSize = 18
+MinBtn.TextColor3 = Color3.new(1,1,1)
+MinBtn.BackgroundColor3 = Color3.fromRGB(30,30,30)
+MinBtn.BorderSizePixel = 0
+Instance.new("UICorner", MinBtn).CornerRadius = UDim.new(0,8)
 
-local MinBtn = TopBtn("–",-96)
-local MaxBtn = TopBtn("□",-62)
-local CloseBtn = TopBtn("×",-28)
-
--- Body
 local Body = Instance.new("ScrollingFrame", Main)
-Body.Position = UDim2.new(0,0,0,44)
-Body.Size = UDim2.new(1,0,1,-44)
-Body.CanvasSize = UDim2.new(0,0,0,1200)
-Body.ScrollBarImageTransparency = 0.4
+Body.Position = UDim2.new(0,0,0,46)
+Body.Size = UDim2.new(1,0,1,-46)
+Body.CanvasSize = UDim2.new(0,0,0,900)
+Body.ScrollBarImageTransparency = 0.5
 Body.BackgroundTransparency = 1
 
--- ================= UI ELEMENTS =================
-local Y = 10
-local function Add(o)
-    o.Position = UDim2.new(0,12,0,Y)
-    Y += o.AbsoluteSize.Y + 10
-end
-
+-- Sections and UI elements
 local function Section(txt)
-    local t = Instance.new("TextLabel", Body)
-    t.Size = UDim2.new(1,-24,0,26)
-    t.Text = txt
-    t.Font = Enum.Font.GothamBold
-    t.TextSize = 14
-    t.TextColor3 = State.Accent
-    t.BackgroundTransparency = 1
-    t.TextXAlignment = Left
-    return t
+    local L = Instance.new("TextLabel", Body)
+    L.Size = UDim2.new(1,-24,0,28)
+    L.Text = txt
+    L.TextColor3 = State.Accent
+    L.Font = Enum.Font.GothamBold
+    L.TextSize = 14
+    L.BackgroundTransparency = 1
+    L.TextXAlignment = Enum.TextXAlignment.Left
+    return L
 end
 
--- Toggle switch
-local function Toggle(name,get,set)
-    local c = Instance.new("Frame",Body)
-    c.Size = UDim2.new(1,-24,0,44)
-    c.BackgroundColor3 = Color3.fromRGB(26,26,26)
-    c.BorderSizePixel = 0
-    Instance.new("UICorner",c).CornerRadius = UDim.new(0,10)
+local function Toggle(name, get, set)
+    local C = Instance.new("Frame", Body)
+    C.Size = UDim2.new(1,-24,0,44)
+    C.BackgroundColor3 = Color3.fromRGB(26,26,26)
+    C.BorderSizePixel = 0
+    Instance.new("UICorner", C).CornerRadius = UDim.new(0,10)
 
-    local l = Instance.new("TextLabel",c)
-    l.Text = name
-    l.Font = Enum.Font.Gotham
-    l.TextSize = 13
-    l.TextColor3 = Color3.fromRGB(230,230,230)
-    l.BackgroundTransparency = 1
-    l.Position = UDim2.new(0,12,0,0)
-    l.Size = UDim2.new(1,-80,1,0)
-    l.TextXAlignment = Left
+    local T = Instance.new("TextLabel", C)
+    T.Text = name
+    T.Size = UDim2.new(1,-80,1,0)
+    T.Position = UDim2.new(0,12,0,0)
+    T.TextColor3 = Color3.fromRGB(230,230,230)
+    T.Font = Enum.Font.Gotham
+    T.TextSize = 13
+    T.BackgroundTransparency = 1
+    T.TextXAlignment = Enum.TextXAlignment.Left
 
-    local s = Instance.new("Frame",c)
-    s.Size = UDim2.new(0,50,0,26)
-    s.Position = UDim2.new(1,-62,0.5,-13)
-    s.BorderSizePixel = 0
-    Instance.new("UICorner",s).CornerRadius = UDim.new(1,0)
+    local S = Instance.new("Frame", C)
+    S.Size = UDim2.new(0,50,0,26)
+    S.Position = UDim2.new(1,-62,0.5,-13)
+    S.BackgroundColor3 = get() and Color3.fromRGB(40,160,80) or Color3.fromRGB(140,40,40)
+    S.BorderSizePixel = 0
+    Instance.new("UICorner", S).CornerRadius = UDim.new(1,0)
 
-    local k = Instance.new("Frame",s)
-    k.Size = UDim2.new(0,22,0,22)
-    Instance.new("UICorner",k).CornerRadius = UDim.new(1,0)
+    local K = Instance.new("Frame", S)
+    K.Size = UDim2.new(0,22,0,22)
+    K.Position = get() and UDim2.new(1,-24,0.5,-11) or UDim2.new(0,2,0.5,-11)
+    K.BackgroundColor3 = Color3.fromRGB(245,245,245)
+    Instance.new("UICorner", K).CornerRadius = UDim.new(1,0)
 
-    local function draw(v)
-        s.BackgroundColor3 = v and Color3.fromRGB(40,160,80) or Color3.fromRGB(150,50,50)
-        k.Position = v and UDim2.new(1,-24,0.5,-11) or UDim2.new(0,2,0.5,-11)
+    local function redraw(v)
+        TweenService:Create(S, TweenInfo.new(0.15), {
+            BackgroundColor3 = v and Color3.fromRGB(40,160,80) or Color3.fromRGB(140,40,40)
+        }):Play()
+        TweenService:Create(K, TweenInfo.new(0.15), {
+            Position = v and UDim2.new(1,-24,0.5,-11) or UDim2.new(0,2,0.5,-11)
+        }):Play()
     end
-    draw(get())
 
-    s.InputBegan:Connect(function(i)
+    S.InputBegan:Connect(function(i)
         if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
             local v = not get()
-            set(v)
-            draw(v)
-            Save()
+            set(v); redraw(v); SaveCFG()
         end
     end)
-    return c
+    redraw(get())
+    return C
 end
 
--- Slider
-local function Slider(name,min,max,get,set)
-    local c = Instance.new("Frame",Body)
-    c.Size = UDim2.new(1,-24,0,56)
-    c.BackgroundColor3 = Color3.fromRGB(26,26,26)
-    c.BorderSizePixel = 0
-    Instance.new("UICorner",c).CornerRadius = UDim.new(0,10)
+local function Slider(name, min, max, get, set)
+    local C = Instance.new("Frame", Body)
+    C.Size = UDim2.new(1,-24,0,56)
+    C.BackgroundColor3 = Color3.fromRGB(26,26,26)
+    C.BorderSizePixel = 0
+    Instance.new("UICorner", C).CornerRadius = UDim.new(0,10)
 
-    local t = Instance.new("TextLabel",c)
-    t.Text = name
-    t.Font = Enum.Font.Gotham
-    t.TextSize = 13
-    t.TextColor3 = Color3.fromRGB(230,230,230)
-    t.BackgroundTransparency = 1
-    t.Position = UDim2.new(0,12,0,6)
-    t.Size = UDim2.new(1,-24,0,20)
-    t.TextXAlignment = Left
+    local T = Instance.new("TextLabel", C)
+    T.Text = name
+    T.Size = UDim2.new(1,-24,0,20)
+    T.Position = UDim2.new(0,12,0,6)
+    T.TextColor3 = Color3.fromRGB(230,230,230)
+    T.Font = Enum.Font.Gotham
+    T.TextSize = 13
+    T.BackgroundTransparency = 1
+    T.TextXAlignment = Enum.TextXAlignment.Left
 
-    local bar = Instance.new("Frame",c)
-    bar.Size = UDim2.new(1,-24,0,10)
-    bar.Position = UDim2.new(0,12,1,-18)
-    bar.BackgroundColor3 = Color3.fromRGB(60,60,60)
-    bar.BorderSizePixel = 0
-    Instance.new("UICorner",bar).CornerRadius = UDim.new(1,0)
+    local Bar = Instance.new("Frame", C)
+    Bar.Size = UDim2.new(1,-24,0,10)
+    Bar.Position = UDim2.new(0,12,1,-18)
+    Bar.BackgroundColor3 = Color3.fromRGB(50,50,50)
+    Bar.BorderSizePixel = 0
+    Instance.new("UICorner", Bar).CornerRadius = UDim.new(1,0)
 
-    local fill = Instance.new("Frame",bar)
-    fill.BackgroundColor3 = State.Accent
-    fill.BorderSizePixel = 0
-    Instance.new("UICorner",fill).CornerRadius = UDim.new(1,0)
+    local Fill = Instance.new("Frame", Bar)
+    Fill.Size = UDim2.new((get()-min)/(max-min),0,1,0)
+    Fill.BackgroundColor3 = State.Accent
+    Fill.BorderSizePixel = 0
+    Instance.new("UICorner", Fill).CornerRadius = UDim.new(1,0)
 
-    local function update(x)
-        local a = math.clamp((x-bar.AbsolutePosition.X)/bar.AbsoluteSize.X,0,1)
+    local drag=false
+    local function upd(x)
+        local a = math.clamp((x-Bar.AbsolutePosition.X)/Bar.AbsoluteSize.X,0,1)
         local v = math.floor(min + (max-min)*a)
         set(v)
-        fill.Size = UDim2.new(a,0,1,0)
-        Save()
+        Fill.Size = UDim2.new(a,0,1,0)
+        SaveCFG()
     end
-    fill.Size = UDim2.new((get()-min)/(max-min),0,1,0)
-
-    bar.InputBegan:Connect(function(i)
+    Bar.InputBegan:Connect(function(i)
         if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
-            update(i.Position.X)
+            drag=true; upd(i.Position.X)
         end
     end)
     UIS.InputChanged:Connect(function(i)
-        if i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch then
-            if UIS:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
-                update(i.Position.X)
-            end
+        if drag and (i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch) then
+            upd(i.Position.X)
         end
     end)
-    return c
+    UIS.InputEnded:Connect(function(i)
+        if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then drag=false end
+    end)
+    return C
 end
 
--- ================= BUILD =================
-Add(Section("Movement"))
-Add(Slider("WalkSpeed",16,200,function() return State.WalkSpeed end,function(v)
-    State.WalkSpeed=v
-    Hum().WalkSpeed=v
+-- Build UI elements positioning
+local y=0
+local function add(o)
+    o.Position=UDim2.new(0,12,0,y)
+    y+=o.AbsoluteSize.Y+10
+end
+
+add(Section("Movement"))
+add(Slider("WalkSpeed", 16, 200, function() return State.WalkSpeed end, function(v)
+    State.WalkSpeed=v; if Hum() then Hum().WalkSpeed=v end
 end))
-Add(Toggle("Fly",function() return State.Fly end,function(v) State.Fly=v end))
-Add(Slider("Fly Speed",20,200,function() return State.FlySpeed end,function(v) State.FlySpeed=v end))
-Add(Toggle("Infinite Jump",function() return State.InfiniteJump end,function(v) State.InfiniteJump=v end))
-Add(Toggle("Noclip",function() return State.Noclip end,function(v) State.Noclip=v end))
+add(Toggle("Fly", function() return State.Fly end, function(v) State.Fly=v end))
+add(Slider("Fly Speed", 20, 200, function() return State.FlySpeed end, function(v) State.FlySpeed=v end))
+add(Toggle("Infinite Jump", function() return State.InfiniteJump end, function(v) State.InfiniteJump=v end))
+add(Toggle("Noclip", function() return State.Noclip end, function(v) State.Noclip=v end))
 
-Add(Section("Visual"))
-Add(Toggle("ESP",function() return State.ESP end,function(v) State.ESP=v end))
-Add(Toggle("X-Ray",function() return State.Xray end,function(v) State.Xray=v end))
-Add(Toggle("Fullbright",function() return State.Fullbright end,function(v) State.Fullbright=v end))
-Add(Toggle("No Fog",function() return State.NoFog end,function(v) State.NoFog=v end))
+add(Section("Visual"))
+add(Toggle("ESP", function() return State.ESP end, function(v) State.ESP=v end))
+add(Toggle("X-Ray", function() return State.Xray end, function(v) State.Xray=v end))
+add(Toggle("Fullbright", function() return State.Fullbright end, function(v) State.Fullbright=v end))
+add(Toggle("No Fog", function() return State.NoFog end, function(v) State.NoFog=v end))
 
-Add(Section("World / Misc"))
-Add(Toggle("FPS Boost",function() return State.FPS end,function(v) State.FPS=v end))
-Add(Toggle("BTools",function() return State.BTools end,function(v) State.BTools=v end))
-Add(Toggle("Anti AFK",function() return State.AntiAFK end,function(v) State.AntiAFK=v end))
+add(Section("World / Misc"))
+add(Toggle("FPS Boost", function() return State.FPS end, function(v) State.FPS=v end))
+add(Toggle("BTools", function() return State.BTools end, function(v) State.BTools=v end))
+add(Toggle("Anti AFK", function() return State.AntiAFK end, function(v) State.AntiAFK=v end))
 
-Add(Section("Teleport"))
-Add(Toggle("Click TP",function() return State.ClickTP end,function(v) State.ClickTP=v end))
+add(Section("Teleport"))
+add(Toggle("Click TP", function() return State.ClickTP end, function(v) State.ClickTP=v end))
 
-Body.CanvasSize = UDim2.new(0,0,0,Y+20)
+add(Section("UI"))
+add(Toggle("Minimize", function() return State.Minimized end, function(v)
+    State.Minimized=v
+    Body.Visible = not v
+    Main.Size = v and UDim2.fromScale(0.38,0.08) or UDim2.fromScale(0.38,0.6)
+    -- Update MinBtn text accordingly
+    MinBtn.Text = v and "☐" or "—"
+    SaveCFG()
+end))
 
--- ================= SYSTEMS =================
+Body.CanvasSize = UDim2.new(0,0,0,y+20)
+
+-- Systems
+-- WalkSpeed apply
 Hum().WalkSpeed = State.WalkSpeed
+LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(0.5)
+    if Hum() then
+        Hum().WalkSpeed = State.WalkSpeed
+    end
+end)
 
--- Fly
-local bv,bg
+-- Fly system
+local flyBV, flyBG
 RunService.Heartbeat:Connect(function()
     if State.Fly then
-        if not bv then
-            bv = Instance.new("BodyVelocity",Root())
-            bv.MaxForce = Vector3.new(1e9,1e9,1e9)
-            bg = Instance.new("BodyGyro",Root())
-            bg.MaxTorque = Vector3.new(1e9,1e9,1e9)
+        if not flyBV then
+            flyBV = Instance.new("BodyVelocity", Root())
+            flyBV.MaxForce = Vector3.new(1e9,1e9,1e9)
+            flyBG = Instance.new("BodyGyro", Root())
+            flyBG.MaxTorque = Vector3.new(1e9,1e9,1e9)
         end
         local cam = workspace.CurrentCamera
         local dir = Vector3.zero
-        if UIS:IsKeyDown(Enum.KeyCode.W) then dir+=cam.CFrame.LookVector end
-        if UIS:IsKeyDown(Enum.KeyCode.S) then dir-=cam.CFrame.LookVector end
-        if UIS:IsKeyDown(Enum.KeyCode.A) then dir-=cam.CFrame.RightVector end
-        if UIS:IsKeyDown(Enum.KeyCode.D) then dir+=cam.CFrame.RightVector end
-        if UIS:IsKeyDown(Enum.KeyCode.Space) then dir+=Vector3.new(0,1,0) end
-        if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then dir-=Vector3.new(0,1,0) end
-        bv.Velocity = dir * State.FlySpeed
-        bg.CFrame = cam.CFrame
+        if UIS:IsKeyDown(Enum.KeyCode.W) then dir += cam.CFrame.LookVector end
+        if UIS:IsKeyDown(Enum.KeyCode.S) then dir -= cam.CFrame.LookVector end
+        if UIS:IsKeyDown(Enum.KeyCode.A) then dir -= cam.CFrame.RightVector end
+        if UIS:IsKeyDown(Enum.KeyCode.D) then dir += cam.CFrame.RightVector end
+        if UIS:IsKeyDown(Enum.KeyCode.Space) then dir += Vector3.new(0,1,0) end
+        if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then dir -= Vector3.new(0,1,0) end
+        flyBV.Velocity = dir * State.FlySpeed
+        flyBG.CFrame = cam.CFrame
     else
-        if bv then bv:Destroy(); bv=nil end
-        if bg then bg:Destroy(); bg=nil end
+        if flyBV then flyBV:Destroy(); flyBV=nil end
+        if flyBG then flyBG:Destroy(); flyBG=nil end
     end
 end)
 
 -- Infinite Jump
 UIS.JumpRequest:Connect(function()
-    if State.InfiniteJump then Hum():ChangeState(Enum.HumanoidStateType.Jumping) end
+    if State.InfiniteJump then
+        if Hum() then
+            Hum():ChangeState(Enum.HumanoidStateType.Jumping)
+        end
+    end
 end)
 
 -- Noclip
 RunService.Stepped:Connect(function()
     if State.Noclip then
         for _,v in ipairs(Char():GetDescendants()) do
-            if v:IsA("BasePart") then v.CanCollide=false end
+            if v:IsA("BasePart") then
+                v.CanCollide = false
+            end
         end
+    end
+end)
+
+-- ESP
+local function applyESP()
+    for _,p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character then
+            if State.ESP then
+                if not p.Character:FindFirstChild("TREX_ESP") then
+                    local h = Instance.new("Highlight", p.Character)
+                    h.Name = "TREX_ESP"
+                    h.FillColor = State.Accent
+                    h.OutlineColor = Color3.new(1,1,1)
+                end
+            else
+                local h = p.Character:FindFirstChild("TREX_ESP")
+                if h then h:Destroy() end
+            end
+        end
+    end
+end
+Players.PlayerAdded:Connect(applyESP)
+Players.PlayerRemoving:Connect(applyESP)
+RunService.Heartbeat:Connect(applyESP)
+
+-- Xray
+RunService.Heartbeat:Connect(function()
+    if State.Xray then
+        for _,v in ipairs(workspace:GetDescendants()) do
+            if v:IsA("BasePart") then
+                v.LocalTransparencyModifier = 0.7
+            end
+        end
+    else
+        for _,v in ipairs(workspace:GetDescendants()) do
+            if v:IsA("BasePart") then
+                v.LocalTransparencyModifier = 0
+            end
+        end
+    end
+end)
+
+-- Lighting adjustments
+RunService.Heartbeat:Connect(function()
+    if State.Fullbright then
+        Lighting.Brightness = 2
+        Lighting.ClockTime = 14
+        Lighting.FogEnd = 1e5
+    end
+    if State.NoFog then
+        Lighting.FogEnd = 1e5
+    end
+end)
+
+-- FPS Boost
+RunService.Heartbeat:Connect(function()
+    if State.FPS then
+        Lighting.GlobalShadows = false
+        for _,v in ipairs(workspace:GetDescendants()) do
+            if v:IsA("BasePart") then
+                v.Material = Enum.Material.Plastic
+            end
+        end
+    end
+end)
+
+-- BTools
+RunService.Heartbeat:Connect(function()
+    if State.BTools then
+        for _,t in ipairs({"Hammer","Clone","Grab"}) do
+            if not LocalPlayer.Backpack:FindFirstChild(t) then
+                local tool = Instance.new("HopperBin", LocalPlayer.Backpack)
+                tool.BinType = Enum.BinType[t]
+                tool.Name = t
+            end
+        end
+    end
+end)
+
+-- Anti AFK
+LocalPlayer.Idled:Connect(function()
+    if State.AntiAFK then
+        local vu = game:GetService("VirtualUser")
+        vu:Button2Down(Vector2.new(), workspace.CurrentCamera.CFrame)
+        task.wait(1)
+        vu:Button2Up(Vector2.new(), workspace.CurrentCamera.CFrame)
     end
 end)
 
 -- Click TP
 UIS.InputBegan:Connect(function(i)
-    if State.ClickTP and i.UserInputType==Enum.UserInputType.MouseButton1 then
-        if Mouse.Hit then Root().CFrame = Mouse.Hit + Vector3.new(0,3,0) end
+    if State.ClickTP and i.UserInputType == Enum.UserInputType.MouseButton1 then
+        local m = LocalPlayer:GetMouse()
+        if m.Hit then
+            Root().CFrame = m.Hit + Vector3.new(0,3,0)
+        end
     end
-end)
-
--- Buttons
-MinBtn.MouseButton1Click:Connect(function()
-    State.Minimized = not State.Minimized
-    Body.Visible = not State.Minimized
-    Main.Size = State.Minimized and UDim2.fromScale(0.4,0.1) or UDim2.fromScale(0.4,0.6)
-end)
-MaxBtn.MouseButton1Click:Connect(function()
-    Main.Size = UDim2.fromScale(0.55,0.75)
-end)
-CloseBtn.MouseButton1Click:Connect(function()
-    GUI:Destroy()
 end)
