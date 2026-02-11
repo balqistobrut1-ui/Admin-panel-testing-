@@ -1,0 +1,302 @@
+-- XYNE HUB - Basic UI with Toggle
+local TweenService = game:GetService("TweenService")
+
+-- Colors
+local Colors = {
+    Background = Color3.fromRGB(20, 20, 20),
+    TopBar = Color3.fromRGB(30, 30, 30),
+    Accent = Color3.fromRGB(255, 140, 0),
+    Text = Color3.fromRGB(255, 255, 255),
+}
+
+-- Create ScreenGui
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "LynxHub"
+ScreenGui.Parent = game:GetService("CoreGui")
+ScreenGui.ResetOnSpawn = false
+
+-- Main Frame
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 600, 0, 400)
+MainFrame.Position = UDim2.new(0.5, -300, 0.5, -200)
+MainFrame.BackgroundColor3 = Colors.Background
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Parent = ScreenGui
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 10)
+MainCorner.Parent = MainFrame
+
+-- Top Bar
+local TopBar = Instance.new("Frame")
+TopBar.Name = "TopBar"
+TopBar.Size = UDim2.new(1, 0, 0, 40)
+TopBar.BackgroundColor3 = Colors.TopBar
+TopBar.BorderSizePixel = 0
+TopBar.Parent = MainFrame
+
+local TopBarCorner = Instance.new("UICorner")
+TopBarCorner.CornerRadius = UDim.new(0, 10)
+TopBarCorner.Parent = TopBar
+
+-- Fix untuk corner bawah TopBar
+local TopBarFix = Instance.new("Frame")
+TopBarFix.Size = UDim2.new(1, 0, 0, 20)
+TopBarFix.Position = UDim2.new(0, 0, 1, -20)
+TopBarFix.BackgroundColor3 = Colors.TopBar
+TopBarFix.BorderSizePixel = 0
+TopBarFix.Parent = TopBar
+
+-- Title
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(0, 200, 1, 0)
+Title.Position = UDim2.new(0, 15, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "Lynx Hub"
+Title.TextColor3 = Colors.Text
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 18
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = TopBar
+
+-- Minimize Button (-)
+local MinimizeButton = Instance.new("TextButton")
+MinimizeButton.Name = "MinimizeButton"
+MinimizeButton.Size = UDim2.new(0, 30, 0, 30)
+MinimizeButton.Position = UDim2.new(1, -105, 0, 5)
+MinimizeButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+MinimizeButton.Text = "−"
+MinimizeButton.TextColor3 = Colors.Text
+MinimizeButton.Font = Enum.Font.GothamBold
+MinimizeButton.TextSize = 18
+MinimizeButton.Parent = TopBar
+
+local MinimizeCorner = Instance.new("UICorner")
+MinimizeCorner.CornerRadius = UDim.new(0, 5)
+MinimizeCorner.Parent = MinimizeButton
+
+-- Maximize Button (□)
+local MaximizeButton = Instance.new("TextButton")
+MaximizeButton.Name = "MaximizeButton"
+MaximizeButton.Size = UDim2.new(0, 30, 0, 30)
+MaximizeButton.Position = UDim2.new(1, -70, 0, 5)
+MaximizeButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+MaximizeButton.Text = "□"
+MaximizeButton.TextColor3 = Colors.Text
+MaximizeButton.Font = Enum.Font.GothamBold
+MaximizeButton.TextSize = 16
+MaximizeButton.Parent = TopBar
+
+local MaximizeCorner = Instance.new("UICorner")
+MaximizeCorner.CornerRadius = UDim.new(0, 5)
+MaximizeCorner.Parent = MaximizeButton
+
+-- Close Button (×)
+local CloseButton = Instance.new("TextButton")
+CloseButton.Name = "CloseButton"
+CloseButton.Size = UDim2.new(0, 30, 0, 30)
+CloseButton.Position = UDim2.new(1, -35, 0, 5)
+CloseButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+CloseButton.Text = "×"
+CloseButton.TextColor3 = Colors.Text
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.TextSize = 20
+CloseButton.Parent = TopBar
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 5)
+CloseCorner.Parent = CloseButton
+
+-- Toggle Button (Kotak kecil 1:1)
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Name = "ToggleButton"
+ToggleButton.Size = UDim2.new(0, 50, 0, 50)
+ToggleButton.Position = UDim2.new(0, 10, 0, 10)
+ToggleButton.BackgroundColor3 = Colors.Accent
+ToggleButton.Text = "L"
+ToggleButton.TextColor3 = Colors.Text
+ToggleButton.Font = Enum.Font.GothamBold
+ToggleButton.TextSize = 24
+ToggleButton.Visible = false
+ToggleButton.Parent = ScreenGui
+
+local ToggleCorner = Instance.new("UICorner")
+ToggleCorner.CornerRadius = UDim.new(0, 10)
+ToggleCorner.Parent = ToggleButton
+
+-- Draggable function
+local dragging
+local dragInput
+local dragStart
+local startPos
+
+local function update(input)
+    local delta = input.Position - dragStart
+    MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+TopBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+TopBar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        update(input)
+    end
+end)
+
+-- Variables
+local isMinimized = false
+local isMaximized = false
+local normalSize = UDim2.new(0, 600, 0, 400)
+local normalPosition = UDim2.new(0.5, -300, 0.5, -200)
+
+-- Minimize Button Function
+MinimizeButton.MouseButton1Click:Connect(function()
+    isMinimized = not isMinimized
+    
+    if isMinimized then
+        -- Minimize (hanya topbar yang terlihat)
+        TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
+            Size = UDim2.new(0, 600, 0, 40)
+        }):Play()
+    else
+        -- Restore
+        if isMaximized then
+            TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
+                Size = UDim2.new(1, -20, 1, -20),
+                Position = UDim2.new(0, 10, 0, 10)
+            }):Play()
+        else
+            TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
+                Size = normalSize
+            }):Play()
+        end
+    end
+end)
+
+-- Maximize Button Function
+MaximizeButton.MouseButton1Click:Connect(function()
+    isMaximized = not isMaximized
+    
+    if isMaximized then
+        -- Maximize (fullscreen dengan margin)
+        normalSize = MainFrame.Size
+        normalPosition = MainFrame.Position
+        
+        TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
+            Size = UDim2.new(1, -20, 1, -20),
+            Position = UDim2.new(0, 10, 0, 10)
+        }):Play()
+        
+        MaximizeButton.Text = "❐"
+    else
+        -- Restore to normal
+        TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
+            Size = normalSize,
+            Position = normalPosition
+        }):Play()
+        
+        MaximizeButton.Text = "□"
+    end
+end)
+
+-- Close Button Function
+CloseButton.MouseButton1Click:Connect(function()
+    -- Fade out animation
+    TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
+        Size = UDim2.new(0, 0, 0, 0),
+        Position = UDim2.new(0.5, 0, 0.5, 0)
+    }):Play()
+    
+    wait(0.3)
+    MainFrame.Visible = false
+    ToggleButton.Visible = true
+    
+    -- Fade in toggle button
+    ToggleButton.Size = UDim2.new(0, 0, 0, 0)
+    ToggleButton.Position = UDim2.new(0, 35, 0, 35)
+    TweenService:Create(ToggleButton, TweenInfo.new(0.3, Enum.EasingStyle.Back), {
+        Size = UDim2.new(0, 50, 0, 50),
+        Position = UDim2.new(0, 10, 0, 10)
+    }):Play()
+end)
+
+-- Toggle Button Function (Buka UI lagi)
+ToggleButton.MouseButton1Click:Connect(function()
+    ToggleButton.Visible = false
+    MainFrame.Visible = true
+    
+    -- Fade in animation
+    MainFrame.Size = UDim2.new(0, 0, 0, 0)
+    MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+    
+    if isMaximized then
+        TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back), {
+            Size = UDim2.new(1, -20, 1, -20),
+            Position = UDim2.new(0, 10, 0, 10)
+        }):Play()
+    else
+        TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back), {
+            Size = normalSize,
+            Position = normalPosition
+        }):Play()
+    end
+end)
+
+-- Hover effects
+MinimizeButton.MouseEnter:Connect(function()
+    MinimizeButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+end)
+
+MinimizeButton.MouseLeave:Connect(function()
+    MinimizeButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+end)
+
+MaximizeButton.MouseEnter:Connect(function()
+    MaximizeButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+end)
+
+MaximizeButton.MouseLeave:Connect(function()
+    MaximizeButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+end)
+
+CloseButton.MouseEnter:Connect(function()
+    CloseButton.BackgroundColor3 = Color3.fromRGB(220, 70, 70)
+end)
+
+CloseButton.MouseLeave:Connect(function()
+    CloseButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+end)
+
+ToggleButton.MouseEnter:Connect(function()
+    TweenService:Create(ToggleButton, TweenInfo.new(0.2), {
+        Size = UDim2.new(0, 55, 0, 55)
+    }):Play()
+end)
+
+ToggleButton.MouseLeave:Connect(function()
+    TweenService:Create(ToggleButton, TweenInfo.new(0.2), {
+        Size = UDim2.new(0, 50, 0, 50)
+    }):Play()
+end)
+
+print("Xyne Hub - Basic UI Loaded!")
