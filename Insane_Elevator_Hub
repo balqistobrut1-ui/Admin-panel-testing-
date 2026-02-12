@@ -1,0 +1,141 @@
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "InsaneElevatorHub"
+ScreenGui.Parent = game.CoreGui
+ScreenGui.ResetOnSpawn = false
+
+-- Variabel Kontrol
+local autoFarmActive = false
+local lobbyPos = Vector3.new(0, 10, 0) -- GANTI dengan koordinat lobby kamu!
+
+-- Fungsi Draggable (Bisa buat Frame & LogoBox)
+local function makeDraggable(frame)
+    local dragging, dragInput, dragStart, startPos
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    frame.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+end
+
+-- 1. LOGO BOX (Saat di Minimize)
+local LogoBox = Instance.new("TextButton")
+LogoBox.Size = UDim2.new(0, 50, 0, 50)
+LogoBox.Position = UDim2.new(0.1, 0, 0.1, 0)
+LogoBox.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+LogoBox.Text = "IE"
+LogoBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+LogoBox.Font = Enum.Font.GothamBold
+LogoBox.Visible = false
+LogoBox.Parent = ScreenGui
+Instance.new("UICorner", LogoBox).CornerRadius = UDim.new(0, 10)
+makeDraggable(LogoBox) -- LogoBox sekarang bisa digeser!
+
+-- 2. MAIN FRAME
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 300, 0, 180)
+MainFrame.Position = UDim2.new(0.5, -150, 0.5, -90)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MainFrame.BorderSizePixel = 0
+MainFrame.Parent = ScreenGui
+Instance.new("UICorner", MainFrame)
+makeDraggable(MainFrame)
+
+-- 3. TOP BAR
+local TopBar = Instance.new("Frame")
+TopBar.Size = UDim2.new(1, 0, 0, 35)
+TopBar.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+TopBar.Parent = MainFrame
+Instance.new("UICorner", TopBar)
+
+local Title = Instance.new("TextLabel")
+Title.Text = "  INSANE ELEVATOR HUB"
+Title.Size = UDim2.new(0.5, 0, 1, 0)
+Title.BackgroundTransparency = 1
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Font = Enum.Font.GothamBold
+Title.Parent = TopBar
+
+-- Tombol Control ( - [ ] X )
+local MinBtn = Instance.new("TextButton")
+MinBtn.Size = UDim2.new(0, 25, 0, 25)
+MinBtn.Position = UDim2.new(0.7, 0, 0.15, 0)
+MinBtn.Text = "-"
+MinBtn.Parent = TopBar
+
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 25, 0, 25)
+CloseBtn.Position = UDim2.new(0.85, 0, 0.15, 0)
+CloseBtn.Text = "X"
+CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+CloseBtn.Parent = TopBar
+
+-- 4. TOGGLE BUTTON
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Size = UDim2.new(0, 200, 0, 45)
+ToggleBtn.Position = UDim2.new(0.5, -100, 0.5, -10)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+ToggleBtn.Text = "Auto Farm: OFF"
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleBtn.Parent = MainFrame
+Instance.new("UICorner", ToggleBtn)
+
+-- LOGIKA: AUTO FARM (Teleport)
+task.spawn(function()
+    while true do
+        task.wait(0.1)
+        if autoFarmActive then
+            local char = game.Players.LocalPlayer.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                char.HumanoidRootPart.CFrame = CFrame.new(lobbyPos)
+            end
+            task.wait(2) -- Delay biar gak lag/kick
+        end
+    end
+end)
+
+-- LOGIKA UI (Interaksi)
+ToggleBtn.MouseButton1Click:Connect(function()
+    autoFarmActive = not autoFarmActive
+    if autoFarmActive then
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+        ToggleBtn.Text = "Auto Farm: ON"
+    else
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        ToggleBtn.Text = "Auto Farm: OFF"
+    end
+end)
+
+MinBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
+    LogoBox.Visible = true
+    LogoBox.Position = MainFrame.Position -- Biar logo muncul di posisi terakhir frame
+end)
+
+LogoBox.MouseButton1Click:Connect(function()
+    MainFrame.Visible = true
+    LogoBox.Visible = false
+    MainFrame.Position = LogoBox.Position -- Biar frame muncul di posisi terakhir logo
+end)
+
+CloseBtn.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
