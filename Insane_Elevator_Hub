@@ -1,6 +1,5 @@
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "InsaneElevatorHub"
@@ -9,9 +8,11 @@ ScreenGui.ResetOnSpawn = false
 
 -- Variabel Kontrol
 local autoFarmActive = false
-local lobbyPos = Vector3.new(0, 10, 0) -- GANTI dengan koordinat lobby kamu!
+local autoGetItems = false
+-- Koordinat Area Emoji "😱" (Sesuaikan hasil print di bawah jika kurang pas)
+local spawnEmojiPos = Vector3.new(-45, 5, 20) 
 
--- Fungsi Draggable (Bisa buat Frame & LogoBox)
+-- Fungsi Draggable
 local function makeDraggable(frame)
     local dragging, dragInput, dragStart, startPos
     frame.InputBegan:Connect(function(input)
@@ -34,7 +35,7 @@ local function makeDraggable(frame)
     end)
 end
 
--- 1. LOGO BOX (Saat di Minimize)
+-- 1. LOGO BOX (MinimizedBox)
 local LogoBox = Instance.new("TextButton")
 LogoBox.Size = UDim2.new(0, 50, 0, 50)
 LogoBox.Position = UDim2.new(0.1, 0, 0.1, 0)
@@ -45,14 +46,13 @@ LogoBox.Font = Enum.Font.GothamBold
 LogoBox.Visible = false
 LogoBox.Parent = ScreenGui
 Instance.new("UICorner", LogoBox).CornerRadius = UDim.new(0, 10)
-makeDraggable(LogoBox) -- LogoBox sekarang bisa digeser!
+makeDraggable(LogoBox)
 
 -- 2. MAIN FRAME
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 300, 0, 180)
-MainFrame.Position = UDim2.new(0.5, -150, 0.5, -90)
+MainFrame.Size = UDim2.new(0, 300, 0, 250) -- Ukuran ditambah untuk fitur baru
+MainFrame.Position = UDim2.new(0.5, -150, 0.5, -125)
 MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-MainFrame.BorderSizePixel = 0
 MainFrame.Parent = ScreenGui
 Instance.new("UICorner", MainFrame)
 makeDraggable(MainFrame)
@@ -64,19 +64,9 @@ TopBar.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 TopBar.Parent = MainFrame
 Instance.new("UICorner", TopBar)
 
-local Title = Instance.new("TextLabel")
-Title.Text = "  INSANE ELEVATOR HUB"
-Title.Size = UDim2.new(0.5, 0, 1, 0)
-Title.BackgroundTransparency = 1
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.Font = Enum.Font.GothamBold
-Title.Parent = TopBar
-
--- Tombol Control ( - [ ] X )
 local MinBtn = Instance.new("TextButton")
 MinBtn.Size = UDim2.new(0, 25, 0, 25)
-MinBtn.Position = UDim2.new(0.7, 0, 0.15, 0)
+MinBtn.Position = UDim2.new(0.85, -30, 0.15, 0)
 MinBtn.Text = "-"
 MinBtn.Parent = TopBar
 
@@ -87,55 +77,74 @@ CloseBtn.Text = "X"
 CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
 CloseBtn.Parent = TopBar
 
--- 4. TOGGLE BUTTON
-local ToggleBtn = Instance.new("TextButton")
-ToggleBtn.Size = UDim2.new(0, 200, 0, 45)
-ToggleBtn.Position = UDim2.new(0.5, -100, 0.5, -10)
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-ToggleBtn.Text = "Auto Farm: OFF"
-ToggleBtn.Font = Enum.Font.GothamBold
-ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-ToggleBtn.Parent = MainFrame
-Instance.new("UICorner", ToggleBtn)
+-- 4. BUTTONS
+local function createBtn(text, pos, color)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 220, 0, 40)
+    btn.Position = pos
+    btn.BackgroundColor3 = color
+    btn.Text = text
+    btn.Font = Enum.Font.GothamBold
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Parent = MainFrame
+    Instance.new("UICorner", btn)
+    return btn
+end
 
--- LOGIKA: AUTO FARM (Teleport)
+local FarmBtn = createBtn("Auto Farm (Emoji Spawn): OFF", UDim2.new(0.5, -110, 0.3, 0), Color3.fromRGB(200, 50, 50))
+local ItemBtn = createBtn("Auto Get VIP Items: OFF", UDim2.new(0.5, -110, 0.55, 0), Color3.fromRGB(200, 50, 50))
+
+-- LOGIKA: AUTO FARM KE EMOJI SPAWN
 task.spawn(function()
     while true do
-        task.wait(0.1)
+        task.wait(1)
         if autoFarmActive then
             local char = game.Players.LocalPlayer.Character
             if char and char:FindFirstChild("HumanoidRootPart") then
-                char.HumanoidRootPart.CFrame = CFrame.new(lobbyPos)
+                -- Teleport ke titik Emoji 😱
+                char.HumanoidRootPart.CFrame = CFrame.new(spawnEmojiPos)
             end
-            task.wait(2) -- Delay biar gak lag/kick
+            task.wait(30) -- Sesuaikan dengan durasi lantai game kamu
         end
     end
 end)
 
--- LOGIKA UI (Interaksi)
-ToggleBtn.MouseButton1Click:Connect(function()
-    autoFarmActive = not autoFarmActive
-    if autoFarmActive then
-        ToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
-        ToggleBtn.Text = "Auto Farm: ON"
-    else
-        ToggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-        ToggleBtn.Text = "Auto Farm: OFF"
+-- LOGIKA: AUTO GET VIP ITEMS
+task.spawn(function()
+    while true do
+        task.wait(2)
+        if autoGetItems then
+            -- Script ini akan mencoba mengambil semua item yang ada di folder 'Items' atau 'Shop'
+            -- Biasanya item premium ada di Workspace atau di dalam ProximityPrompt
+            pcall(function()
+                for _, v in pairs(game.Workspace:GetDescendants()) do
+                    if v:IsA("ProximityPrompt") then
+                        -- Mencoba mengaktifkan semua prompt (termasuk item VIP)
+                        fireproximityprompt(v)
+                    elseif v:IsA("TouchTransmitter") and v.Parent:FindFirstChild("Handle") then
+                        -- Mencoba menyentuh item yang tergeletak
+                        firetouchinterest(game.Players.LocalPlayer.Character.HumanoidRootPart, v.Parent, 0)
+                        firetouchinterest(game.Players.LocalPlayer.Character.HumanoidRootPart, v.Parent, 1)
+                    end
+                end
+            end)
+        end
     end
 end)
 
-MinBtn.MouseButton1Click:Connect(function()
-    MainFrame.Visible = false
-    LogoBox.Visible = true
-    LogoBox.Position = MainFrame.Position -- Biar logo muncul di posisi terakhir frame
+-- INTERAKSI TOMBOL
+FarmBtn.MouseButton1Click:Connect(function()
+    autoFarmActive = not autoFarmActive
+    FarmBtn.Text = "Auto Farm (Emoji Spawn): " .. (autoFarmActive and "ON" or "OFF")
+    FarmBtn.BackgroundColor3 = autoFarmActive and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(200, 50, 50)
 end)
 
-LogoBox.MouseButton1Click:Connect(function()
-    MainFrame.Visible = true
-    LogoBox.Visible = false
-    MainFrame.Position = LogoBox.Position -- Biar frame muncul di posisi terakhir logo
+ItemBtn.MouseButton1Click:Connect(function()
+    autoGetItems = not autoGetItems
+    ItemBtn.Text = "Auto Get VIP Items: " .. (autoGetItems and "ON" or "OFF")
+    ItemBtn.BackgroundColor3 = autoGetItems and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(200, 50, 50)
 end)
 
-CloseBtn.MouseButton1Click:Connect(function()
-    ScreenGui:Destroy()
-end)
+MinBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false; LogoBox.Visible = true; LogoBox.Position = MainFrame.Position end)
+LogoBox.MouseButton1Click:Connect(function() MainFrame.Visible = true; LogoBox.Visible = false; MainFrame.Position = LogoBox.Position end)
+CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
