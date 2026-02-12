@@ -1,0 +1,149 @@
+-- [[ CUSTOM NPC HOVER HUB ]] --
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+
+-- State Variables
+local tracking = false
+local heightOffset = 50
+local currentNPC = nil
+
+-- UI Creation
+local ScreenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
+ScreenGui.Name = "NpcHoverHub"
+ScreenGui.ResetOnSpawn = false
+
+-- Mini Button (Hub 1:1)
+local HubBtn = Instance.new("TextButton", ScreenGui)
+HubBtn.Size = UDim2.new(0, 50, 0, 50)
+HubBtn.Position = UDim2.new(0, 10, 0.5, -25)
+HubBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+HubBtn.Text = "Hub"
+HubBtn.Visible = false
+HubBtn.ZIndex = 10
+
+-- Main Window
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 250, 0, 200)
+MainFrame.Position = UDim2.new(0.5, -125, 0.5, -100)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+MainFrame.BorderSizePixel = 0
+
+-- Top Bar (Draggable)
+local TopBar = Instance.new("Frame", MainFrame)
+TopBar.Size = UDim2.new(1, 0, 0, 35)
+TopBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+
+local CloseBtn = Instance.new("TextButton", TopBar)
+CloseBtn.Size = UDim2.new(0, 35, 0, 35)
+CloseBtn.Position = UDim2.new(1, -35, 0, 0)
+CloseBtn.Text = "-"
+CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
+CloseBtn.TextColor3 = Color3.new(1, 1, 1)
+
+-- Draggable Logic
+local dragging, dragInput, dragStart, startPos
+TopBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+TopBar.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+end)
+
+-- Toggle & Slider UI Elements
+local ToggleBtn = Instance.new("TextButton", MainFrame)
+ToggleBtn.Position = UDim2.new(0, 10, 0, 50)
+ToggleBtn.Size = UDim2.new(1, -20, 0, 40)
+ToggleBtn.Text = "Hover NPC: OFF"
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+ToggleBtn.TextColor3 = Color3.new(1, 1, 1)
+
+local SliderLabel = Instance.new("TextLabel", MainFrame)
+SliderLabel.Position = UDim2.new(0, 10, 0, 100)
+SliderLabel.Size = UDim2.new(1, -20, 0, 20)
+SliderLabel.Text = "Offset Height: 50"
+SliderLabel.BackgroundTransparency = 1
+SliderLabel.TextColor3 = Color3.new(1, 1, 1)
+
+local SliderBar = Instance.new("Frame", MainFrame)
+SliderBar.Position = UDim2.new(0, 10, 0, 130)
+SliderBar.Size = UDim2.new(1, -20, 0, 10)
+SliderBar.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+
+local SliderBtn = Instance.new("TextButton", SliderBar)
+SliderBtn.Size = UDim2.new(0, 20, 0, 20)
+SliderBtn.Position = UDim2.new(0.5, -10, -0.5, 0) -- Default 50 (setengah dari 200 di slider 0.5)
+SliderBtn.Text = ""
+
+-- Logic: Minimize
+CloseBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
+    HubBtn.Visible = true
+end)
+HubBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = true
+    HubBtn.Visible = false
+end)
+
+-- Logic: Slider (Range -200 to 200)
+local sliding = false
+SliderBtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then sliding = true end
+end)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then sliding = false end
+end)
+
+RunService.Heartbeat:Connect(function()
+    if sliding then
+        local mousePos = UserInputService:GetMouseLocation().X
+        local barPos = SliderBar.AbsolutePosition.X
+        local barWidth = SliderBar.AbsoluteSize.X
+        local percentage = math.clamp((mousePos - barPos) / barWidth, 0, 1)
+        SliderBtn.Position = UDim2.new(percentage, -10, -0.5, 0)
+        -- Convert percentage to range -200 to 200
+        heightOffset = (percentage * 400) - 200
+        SliderLabel.Text = "Offset Height: " .. math.floor(heightOffset)
+    end
+end)
+
+-- Logic: Hover Follow NPC
+ToggleBtn.MouseButton1Click:Connect(function()
+    tracking = not tracking
+    ToggleBtn.Text = tracking and "Hover NPC: ON" or "Hover NPC: OFF"
+    ToggleBtn.BackgroundColor3 = tracking and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(60, 60, 60)
+    
+    if tracking then
+        -- Mencari NPC terdekat
+        local dist = math.huge
+        for _, v in pairs(workspace:GetDescendants()) do
+            if v:IsA("Humanoid") and v.Parent ~= LocalPlayer.Character then
+                local d = (LocalPlayer.Character.HumanoidRootPart.Position - v.RootPart.Position).Magnitude
+                if d < dist then
+                    dist = d
+                    currentNPC = v.Parent
+                end
+            end
+        end
+    end
+end)
+
+RunService.RenderStepped:Connect(function()
+    if tracking and currentNPC and currentNPC:FindFirstChild("HumanoidRootPart") then
+        local npcRoot = currentNPC.HumanoidRootPart
+        LocalPlayer.Character.HumanoidRootPart.CFrame = npcRoot.CFrame * CFrame.new(0, heightOffset, 0)
+        -- Mematikan gravitasi agar tidak jatuh/bergetar
+        LocalPlayer.Character.HumanoidRootPart.Velocity = Vector3.new(0, 0, 0)
+    end
+end)
