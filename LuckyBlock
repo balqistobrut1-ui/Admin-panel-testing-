@@ -1,220 +1,257 @@
--- ===========================================
--- AUTO TELEPORT BRAINROT TO BASE
--- Break a Lucky Block Script
--- ===========================================
+--[[
+╔════════════════════════════════╗
+║  BREAK A LUCKY BLOCK SCRIPT    ║
+║  Teleport + Brainrot           ║
+║  Tekan INSERT buat ON/OFF      ║
+╚════════════════════════════════╝
+--]]
 
-local Player = game:GetService("Players").LocalPlayer
-local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+-- CONFIGURATION (UBAH SESUAI BASE KAMU)
+local basePosition = CFrame.new(0, 50, 0)  -- GANTI KOORDINAT BASE
+local brainrotName = "brainrot"            -- Nama item brainrot
 
--- Konfigurasi
-local Settings = {
-    AutoTeleport = true,
-    TeleportDelay = 0.5, -- Delay setelah dapat brainrot
-    CheckInterval = 0.1, -- Interval pengecekan inventory
-    BrainrotNames = {"Brainrot", "BrainRot", "Brain_rot", "LegendaryBrainrot"} -- Variasi nama item
-}
+-- JANGAN UBAH DIBAWAH INI
+local player = game:GetService("Players").LocalPlayer
+local uis = game:GetService("UserInputService")
+local runService = game:GetService("RunService")
+local tweenService = game:GetService("TweenService")
 
--- Variabel untuk tracking
-local hadBrainrot = false
-local basePosition = nil
+-- VARIABLES
+local enabled = false
+local dragging = false
+local dragOffset = Vector2.new()
+local gui = nil
 
--- Fungsi untuk mencari posisi base pemain
-local function findBasePosition()
-    -- Method 1: Cari base berdasarkan owner
-    for _, obj in pairs(Workspace:GetDescendants()) do
-        if obj:IsA("Model") and obj:FindFirstChild("Owner") then
-            local ownerValue = obj:FindFirstChild("Owner")
-            if ownerValue and ownerValue.Value == Player then
-                local primaryPart = obj.PrimaryPart or obj:FindFirstChild("Part") or obj:FindFirstChild("Base")
-                if primaryPart then
-                    return primaryPart.Position
-                end
-            end
-        end
-    end
-    
-    -- Method 2: Cari base dengan nama mengandung "Base"
-    for _, obj in pairs(Workspace:GetDescendants()) do
-        if obj:IsA("Model") and string.find(obj.Name, "Base") then
-            for _, part in pairs(obj:GetDescendants()) do
-                if part:IsA("Part") and part.Position.Y < 50 then -- Filter base di ground
-                    return part.Position
-                end
-            end
-        end
-    end
-    
-    -- Method 3: Default ke spawn location
-    local spawn = Workspace:FindFirstChild("SpawnLocation") or Workspace:FindFirstChild("BaseSpawn")
-    if spawn then
-        return spawn.Position
-    end
-    
-    return Vector3.new(0, 50, 0) -- Default fallback
-end
-
--- Fungsi untuk mengecek apakah player punya brainrot
-local function hasBrainrot()
-    local playerGui = Player:FindFirstChild("PlayerGui")
-    if not playerGui then return false end
-    
-    -- Cek di backpack/inventory
-    local backpack = Player:FindFirstChild("Backpack")
-    if backpack then
-        for _, item in pairs(backpack:GetChildren()) do
-            for _, name in pairs(Settings.BrainrotNames) do
-                if string.find(item.Name, name) then
-                    return true
-                end
-            end
-        end
-    end
-    
-    -- Cek di leaderstats jika ada
-    local leaderstats = Player:FindFirstChild("leaderstats")
-    if leaderstats then
-        for _, stat in pairs(leaderstats:GetChildren()) do
-            if stat:IsA("NumberValue") and string.find(stat.Name, "Brainrot") and stat.Value > 0 then
-                return true
-            end
-        end
-    end
-    
-    return false
-end
-
--- Fungsi teleport ke base
-local function teleportToBase()
-    if not Player.Character or not Player.Character:FindFirstChild("HumanoidRootPart") then
-        return false
-    end
-    
-    -- Update base position setiap kali teleport (antisipasi base pindah)
-    basePosition = findBasePosition()
-    
-    local rootPart = Player.Character.HumanoidRootPart
-    rootPart.CFrame = CFrame.new(basePosition + Vector3.new(0, 5, 0)) -- Sedikit di atas base
-    
-    -- Notifikasi
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "Brainrot Detected!",
-        Text = "Teleport ke base...",
-        Duration = 2,
-        Icon = "rbxassetid://4483345998"
-    })
-    
-    return true
-end
-
--- Main loop untuk monitoring brainrot
-local function startMonitoring()
-    print("🚀 Auto Teleport Brainrot dimulai!")
-    print("📍 Mencari base position...")
-    
-    basePosition = findBasePosition()
-    print("📍 Base position: " .. tostring(basePosition))
-    
-    -- Loop pengecekan
-    RunService.Heartbeat:Connect(function()
-        if not Settings.AutoTeleport then return end
-        
-        local currentHasBrainrot = hasBrainrot()
-        
-        -- Jika baru saja mendapatkan brainrot
-        if currentHasBrainrot and not hadBrainrot then
-            print("🎉 Brainrot didapatkan! Menunggu " .. Settings.TeleportDelay .. " detik...")
-            
-            -- Delay sebelum teleport
-            task.wait(Settings.TeleportDelay)
-            
-            -- Teleport ke base
-            teleportToBase()
-            
-            hadBrainrot = true
-            
-        -- Jika brainrot hilang (sudah disimpan/dikumpulkan)
-        elseif not currentHasBrainrot and hadBrainrot then
-            print("✅ Brainrot telah dikumpulkan")
-            hadBrainrot = false
-        end
-    end)
-end
-
--- GUI Control Panel
+-- BUAT GUI
 local function createGUI()
-    local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "BrainrotTeleportGUI"
-    ScreenGui.Parent = game:GetService("CoreGui")
+    -- ScreenGui
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "BrainrotTeleport"
+    screenGui.ResetOnSpawn = false
+    screenGui.Parent = player:WaitForChild("PlayerGui")
     
-    local MainFrame = Instance.new("Frame")
-    MainFrame.Size = UDim2.new(0, 250, 0, 120)
-    MainFrame.Position = UDim2.new(0.02, 0, 0.5, -60)
-    MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-    MainFrame.BorderSizePixel = 0
-    MainFrame.Parent = ScreenGui
+    -- Main Frame
+    local frame = Instance.new("Frame")
+    frame.Name = "MainFrame"
+    frame.Size = UDim2.new(0, 200, 0, 100)
+    frame.Position = UDim2.new(0.5, -100, 0.5, -50)
+    frame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+    frame.BackgroundTransparency = 0.1
+    frame.BorderSizePixel = 0
+    frame.Active = true
+    frame.Parent = screenGui
     
-    local UICorner = Instance.new("UICorner")
-    UICorner.CornerRadius = UDim.new(0, 8)
-    UICorner.Parent = MainFrame
+    -- Rounded corners
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = frame
     
-    local Title = Instance.new("TextLabel")
-    Title.Size = UDim2.new(1, 0, 0, 30)
-    Title.Text = "⚡ Brainrot Teleport"
-    Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Title.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
-    Title.Font = Enum.Font.GothamBold
-    Title.TextSize = 14
-    Title.Parent = MainFrame
+    -- Title bar (buat drag)
+    local titleBar = Instance.new("Frame")
+    titleBar.Name = "TitleBar"
+    titleBar.Size = UDim2.new(1, 0, 0, 25)
+    titleBar.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+    titleBar.BorderSizePixel = 0
+    titleBar.Parent = frame
     
-    local ToggleBtn = Instance.new("TextButton")
-    ToggleBtn.Size = UDim2.new(0.8, 0, 0, 35)
-    ToggleBtn.Position = UDim2.new(0.1, 0, 0.4, 0)
-    ToggleBtn.BackgroundColor3 = Settings.AutoTeleport and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
-    ToggleBtn.Text = Settings.AutoTeleport and "ON" or "OFF"
-    ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    ToggleBtn.Font = Enum.Font.Gotham
-    ToggleBtn.TextSize = 16
-    ToggleBtn.Parent = MainFrame
+    local titleCorner = Instance.new("UICorner")
+    titleCorner.CornerRadius = UDim.new(0, 8)
+    titleCorner.Parent = titleBar
     
-    local Status = Instance.new("TextLabel")
-    Status.Size = UDim2.new(1, 0, 0, 25)
-    Status.Position = UDim2.new(0, 0, 0.8, 0)
-    Status.Text = "Status: " .. (hadBrainrot and "Memiliki Brainrot" or "Menunggu Brainrot")
-    Status.TextColor3 = Color3.fromRGB(200, 200, 200)
-    Status.BackgroundTransparency = 1
-    Status.Font = Enum.Font.Gotham
-    Status.TextSize = 12
-    Status.Parent = MainFrame
+    local titleText = Instance.new("TextLabel")
+    titleText.Size = UDim2.new(1, -30, 1, 0)
+    titleText.Position = UDim2.new(0, 10, 0, 0)
+    titleText.BackgroundTransparency = 1
+    titleText.Text = "⚡ BRAINROT TELEPORT"
+    titleText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    titleText.TextXAlignment = Enum.TextXAlignment.Left
+    titleText.Font = Enum.Font.GothamBold
+    titleText.TextSize = 14
+    titleText.Parent = titleBar
     
-    ToggleBtn.MouseButton1Click:Connect(function()
-        Settings.AutoTeleport = not Settings.AutoTeleport
-        ToggleBtn.BackgroundColor3 = Settings.AutoTeleport and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
-        ToggleBtn.Text = Settings.AutoTeleport and "ON" or "OFF"
+    -- Close button
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Name = "CloseButton"
+    closeBtn.Size = UDim2.new(0, 20, 0, 20)
+    closeBtn.Position = UDim2.new(1, -25, 0, 2.5)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+    closeBtn.Text = "X"
+    closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeBtn.TextScaled = true
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.Parent = titleBar
+    
+    local closeCorner = Instance.new("UICorner")
+    closeCorner.CornerRadius = UDim.new(0, 4)
+    closeCorner.Parent = closeBtn
+    
+    closeBtn.MouseButton1Click:Connect(function()
+        screenGui:Destroy()
+        gui = nil
     end)
     
-    -- Update status setiap detik
-    game:GetService("RunService").Stepped:Connect(function()
-        Status.Text = "Status: " .. (hadBrainrot and "✅ Memiliki Brainrot" or "⏳ Menunggu Brainrot")
+    -- Status
+    local statusLabel = Instance.new("TextLabel")
+    statusLabel.Name = "StatusLabel"
+    statusLabel.Size = UDim2.new(1, -20, 0, 20)
+    statusLabel.Position = UDim2.new(0, 10, 0, 35)
+    statusLabel.BackgroundTransparency = 1
+    statusLabel.Text = "🔴 Status: OFF"
+    statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+    statusLabel.TextXAlignment = Enum.TextXAlignment.Left
+    statusLabel.Font = Enum.Font.Gotham
+    statusLabel.TextSize = 14
+    statusLabel.Parent = frame
+    
+    -- Info
+    local infoLabel = Instance.new("TextLabel")
+    infoLabel.Name = "InfoLabel"
+    infoLabel.Size = UDim2.new(1, -20, 0, 20)
+    infoLabel.Position = UDim2.new(0, 10, 0, 55)
+    infoLabel.BackgroundTransparency = 1
+    infoLabel.Text = "Pegang " .. brainrotName .. " buat teleport"
+    infoLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    infoLabel.TextXAlignment = Enum.TextXAlignment.Left
+    infoLabel.Font = Enum.Font.Gotham
+    infoLabel.TextSize = 12
+    infoLabel.Parent = frame
+    
+    -- Toggle button
+    local toggleBtn = Instance.new("TextButton")
+    toggleBtn.Name = "ToggleButton"
+    toggleBtn.Size = UDim2.new(0.8, 0, 0, 25)
+    toggleBtn.Position = UDim2.new(0.1, 0, 0, 75)
+    toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+    toggleBtn.Text = "🔴 OFF"
+    toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    toggleBtn.Font = Enum.Font.GothamBold
+    toggleBtn.TextSize = 14
+    toggleBtn.Parent = frame
+    
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 4)
+    btnCorner.Parent = toggleBtn
+    
+    -- DRAG FUNCTIONALITY
+    titleBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            local mousePos = uis:GetMouseLocation()
+            local framePos = frame.AbsolutePosition
+            dragOffset = Vector2.new(mousePos.X - framePos.X, mousePos.Y - framePos.Y)
+        end
     end)
     
-    return ScreenGui
+    uis.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+    
+    runService.RenderStepped:Connect(function()
+        if dragging and gui then
+            local mousePos = uis:GetMouseLocation()
+            local newPos = UDim2.new(0, mousePos.X - dragOffset.X, 0, mousePos.Y - dragOffset.Y)
+            frame.Position = newPos
+        end
+    end)
+    
+    -- TOGGLE BUTTON
+    toggleBtn.MouseButton1Click:Connect(function()
+        enabled = not enabled
+        
+        if enabled then
+            statusLabel.Text = "🟢 Status: ON"
+            statusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+            toggleBtn.Text = "🟢 ON"
+            toggleBtn.BackgroundColor3 = Color3.fromRGB(80, 200, 80)
+            
+            tweenService:Create(frame, TweenInfo.new(0.3), {
+                BackgroundColor3 = Color3.fromRGB(30, 40, 30)
+            }):Play()
+        else
+            statusLabel.Text = "🔴 Status: OFF"
+            statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+            toggleBtn.Text = "🔴 OFF"
+            toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+            
+            tweenService:Create(frame, TweenInfo.new(0.3), {
+                BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+            }):Play()
+        end
+    end)
+    
+    return screenGui
 end
 
--- Inisialisasi
-pcall(function()
-    -- Tunggu player siap
-    repeat task.wait() until Player.Character
-    
-    -- Buat GUI
-    createGUI()
-    
-    -- Mulai monitoring
-    startMonitoring()
-    
-    print("✅ Script Brainrot Teleporter siap!")
-    print("📌 Script akan auto teleport ke base saat mendapatkan Brainrot")
+-- KEYBIND INSERT UNTUK ON/OFF
+uis.InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.Insert then
+        if not gui then
+            gui = createGUI()
+        else
+            gui.Enabled = not gui.Enabled
+        end
+    end
 end)
 
-return Settings
+-- DETEKSI BRAINROT DAN TELEPORT
+while true do
+    task.wait(0.2)
+    
+    if enabled and player.Character then
+        local character = player.Character
+        local humanoid = character:FindFirstChild("Humanoid")
+        
+        if humanoid then
+            local holdingBrainrot = false
+            
+            -- Cek tool di tangan
+            local tool = character:FindFirstChildOfClass("Tool")
+            if tool and string.lower(tool.Name):find(string.lower(brainrotName)) then
+                holdingBrainrot = true
+            end
+            
+            -- Cek juga di inventory (opsional)
+            if not holdingBrainrot then
+                local backpack = player:FindFirstChild("Backpack")
+                if backpack then
+                    for _, item in pairs(backpack:GetChildren()) do
+                        if item:IsA("Tool") and string.lower(item.Name):find(string.lower(brainrotName)) then
+                            holdingBrainrot = true
+                            break
+                        end
+                    end
+                end
+            end
+            
+            -- Kalau pegang brainrot, teleport
+            if holdingBrainrot then
+                local hrp = character:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    hrp.CFrame = basePosition
+                    
+                    -- Kasih efek biar tau ke teleport
+                    local effect = Instance.new("Part")
+                    effect.Size = Vector3.new(3, 3, 3)
+                    effect.CFrame = hrp.CFrame
+                    effect.Anchored = true
+                    effect.CanCollide = false
+                    effect.Material = Enum.Material.Neon
+                    effect.BrickColor = BrickColor.new("Bright violet")
+                    effect.Shape = Enum.PartType.Ball
+                    effect.Parent = workspace
+                    
+                    -- Fade out
+                    for i = 1, 10 do
+                        effect.Transparency = i / 10
+                        task.wait(0.03)
+                    end
+                    effect:Destroy()
+                    
+                    task.wait(2) -- Cooldown biar ga spam
+                end
+            end
+        end
+    end
+end
