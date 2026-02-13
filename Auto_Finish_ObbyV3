@@ -1,0 +1,261 @@
+-- ===========================================
+-- AUTO FISH MODDED - FISH IT (NO DELAY)
+-- Untuk Android - Simple Version
+-- ===========================================
+
+-- Cek apakah di game Fish It
+if game.PlaceId ~= 98231063560646 then
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Error",
+        Text = "Ini bukan game Fish It!",
+        Duration = 3
+    })
+    return
+end
+
+local Player = game:GetService("Players").LocalPlayer
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Settings
+local Settings = {
+    AutoFish = false,
+    FastMode = true,  -- Mode cepat (pake remote)
+    AutoSell = false,
+    ShowGUI = true
+}
+
+-- Cari remote events (yang bikin cepet)
+local Remotes = {
+    Cast = nil,
+    Reel = nil,
+    Sell = nil
+}
+
+-- Fungsi buat cari remote events
+local function FindRemotes()
+    -- Cara 1: Cari di Packages
+    local packages = ReplicatedStorage:FindFirstChild("Packages")
+    if packages then
+        local net = packages:FindFirstChild("_index"):FindFirstChild("sleitnick_net@0.2.0")
+        if net and net:FindFirstChild("net") then
+            net = net.net
+            
+            -- Cari remote yang diperlukan
+            Remotes.Cast = net:FindFirstChild("RF/ChargeFishingRod")
+            Remotes.Reel = net:FindFirstChild("RE/FishingCompleted")
+            
+            -- Cari remote jual ikan
+            local sellRemote = net:FindFirstChild("RE/SellAll")
+            if sellRemote then
+                Remotes.Sell = sellRemote
+            end
+        end
+    end
+    
+    -- Cara 2: Cari langsung (fallback)
+    if not Remotes.Cast then
+        for _, obj in pairs(ReplicatedStorage:GetDescendants()) do
+            if obj.Name == "ChargeFishingRod" or obj.Name == "Cast" then
+                Remotes.Cast = obj
+            elseif obj.Name == "FishingCompleted" or obj.Name == "Reel" then
+                Remotes.Reel = obj
+            end
+        end
+    end
+    
+    return Remotes.Cast and Remotes.Reel
+end
+
+-- Fungsi auto fish (pake remote = no delay)
+local function AutoFishLoop()
+    while Settings.AutoFish do
+        -- Equip tool dulu (biar aman)
+        pcall(function()
+            local tool = Player.Character:FindFirstChild("Fishing Rod") or 
+                        Player.Backpack:FindFirstChild("Fishing Rod")
+            if tool and Player.Character then
+                Player.Character.Humanoid:EquipTool(tool)
+            end
+        end)
+        
+        -- Cast pake remote (langsung, gada delay)
+        if Remotes.Cast and Remotes.Cast:IsA("RemoteFunction") then
+            pcall(function()
+                Remotes.Cast:InvokeServer(1)  -- 1 = max charge
+            end)
+        elseif Remotes.Cast and Remotes.Cast:IsA("RemoteEvent") then
+            pcall(function()
+                Remotes.Cast:FireServer()
+            end)
+        end
+        
+        -- Reel langsung (no delay)
+        if Remotes.Reel and Remotes.Reel:IsA("RemoteEvent") then
+            pcall(function()
+                Remotes.Reel:FireServer()
+            end)
+        end
+        
+        -- Kasih jeda kecil biar gak overflow
+        task.wait(0.05)
+    end
+end
+
+-- Fungsi auto jual
+local function AutoSellLoop()
+    while Settings.AutoSell do
+        if Remotes.Sell then
+            pcall(function()
+                Remotes.Sell:FireServer()
+            end)
+        end
+        task.wait(5)  -- Jual tiap 5 detik
+    end
+end
+
+-- GUI Simple buat Android
+if Settings.ShowGUI then
+    -- Hapus GUI lama
+    if CoreGui:FindFirstChild("FishGUI") then
+        CoreGui:FindFirstChild("FishGUI"):Destroy()
+    end
+    
+    local GUI = Instance.new("ScreenGui")
+    GUI.Name = "FishGUI"
+    GUI.Parent = CoreGui
+    GUI.ResetOnSpawn = false
+    
+    -- Frame (posisi kanan bawah buat Android)
+    local Frame = Instance.new("Frame")
+    Frame.Size = UDim2.new(0, 180, 0, 160)
+    Frame.Position = UDim2.new(1, -190, 1, -170)
+    Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+    Frame.BackgroundTransparency = 0.1
+    Frame.Active = true
+    Frame.Draggable = true
+    Frame.Parent = GUI
+    
+    -- Judul
+    local Title = Instance.new("TextLabel")
+    Title.Size = UDim2.new(1, 0, 0, 30)
+    Title.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+    Title.Text = "🎣 AUTO FISH MOD"
+    Title.TextColor3 = Color3.new(1, 1, 1)
+    Title.Font = Enum.Font.GothamBold
+    Title.TextSize = 14
+    Title.Parent = Frame
+    
+    -- Tombol Start/Stop Auto Fish
+    local FishBtn = Instance.new("TextButton")
+    FishBtn.Size = UDim2.new(0.9, 0, 0, 35)
+    FishBtn.Position = UDim2.new(0.05, 0, 0, 35)
+    FishBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+    FishBtn.Text = "START FISH"
+    FishBtn.TextColor3 = Color3.new(1, 1, 1)
+    FishBtn.Font = Enum.Font.GothamBold
+    FishBtn.TextSize = 13
+    FishBtn.Parent = Frame
+    
+    -- Tombol Auto Sell
+    local SellBtn = Instance.new("TextButton")
+    SellBtn.Size = UDim2.new(0.9, 0, 0, 35)
+    SellBtn.Position = UDim2.new(0.05, 0, 0, 75)
+    SellBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 0)
+    SellBtn.Text = "AUTO SELL: OFF"
+    SellBtn.TextColor3 = Color3.new(1, 1, 1)
+    SellBtn.Font = Enum.Font.Gotham
+    SellBtn.TextSize = 12
+    SellBtn.Parent = Frame
+    
+    -- Status remote
+    local Status = Instance.new("TextLabel")
+    Status.Size = UDim2.new(1, 0, 0, 20)
+    Status.Position = UDim2.new(0, 0, 1, -25)
+    Status.BackgroundTransparency = 1
+    Status.Text = "🔍 Mencari remote..."
+    Status.TextColor3 = Color3.fromRGB(255, 255, 0)
+    Status.Font = Enum.Font.Gotham
+    Status.TextSize = 10
+    Status.Parent = Frame
+    
+    -- Cek remote
+    spawn(function()
+        if FindRemotes() then
+            Status.Text = "✅ Remote ditemukan! Mode NO DELAY"
+            Status.TextColor3 = Color3.fromRGB(0, 255, 0)
+        else
+            Status.Text = "❌ Remote gak ditemukan"
+            Status.TextColor3 = Color3.fromRGB(255, 0, 0)
+        end
+    end)
+    
+    -- Event tombol
+    FishBtn.MouseButton1Click:Connect(function()
+        Settings.AutoFish = not Settings.AutoFish
+        
+        if Settings.AutoFish then
+            FishBtn.Text = "STOP FISH"
+            FishBtn.BackgroundColor3 = Color3.fromRGB(255, 70, 70)
+            
+            -- Mulai loop
+            spawn(AutoFishLoop)
+        else
+            FishBtn.Text = "START FISH"
+            FishBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+        end
+    end)
+    
+    SellBtn.MouseButton1Click:Connect(function()
+        Settings.AutoSell = not Settings.AutoSell
+        
+        if Settings.AutoSell then
+            SellBtn.Text = "AUTO SELL: ON"
+            SellBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+            
+            -- Mulai loop jual
+            spawn(AutoSellLoop)
+        else
+            SellBtn.Text = "AUTO SELL: OFF"
+            SellBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 0)
+        end
+    end)
+end
+
+-- Keybind F buat toggle (alternatif)
+UserInputService.InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.F then
+        Settings.AutoFish = not Settings.AutoFish
+        
+        if Settings.AutoFish then
+            print("🎣 Auto Fish ON")
+            spawn(AutoFishLoop)
+        else
+            print("🎣 Auto Fish OFF")
+        end
+    elseif input.KeyCode == Enum.KeyCode.G then
+        Settings.AutoSell = not Settings.AutoSell
+        
+        if Settings.AutoSell then
+            print("💰 Auto Sell ON")
+            spawn(AutoSellLoop)
+        else
+            print("💰 Auto Sell OFF")
+        end
+    end
+end)
+
+-- Notifikasi
+local remoteFound = FindRemotes()
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "Auto Fish Mod",
+    Text = remoteFound and "✅ Mode NO DELAY aktif!" or "⚠️ Remote gak ditemukan",
+    Duration = 3
+})
+
+print("🎣 Auto Fish Mod siap!")
+print("📌 Tekan F = Start/Stop Auto Fish")
+print("📌 Tekan G = Start/Stop Auto Sell")
+print("📌 GUI bisa di-drag")
