@@ -1,108 +1,96 @@
--- [[ FISH IT MODDED - FULL VERSION ]] --
+-- [[ FISH IT MODDED - RE-OPTIMIZED FAVORITE & INSTANT ]] --
+local NetRE = game.ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net.RE
+local NetRF = game.ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net.RF
+
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = game.CoreGui
 
--- Main Frame
+-- UI Setup (Draggable & Control)
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 300, 0, 380)
-MainFrame.Position = UDim2.new(0.5, -150, 0.5, -190)
-MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+MainFrame.Size = UDim2.new(0, 300, 0, 420)
+MainFrame.Position = UDim2.new(0.5, -150, 0.5, -210)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 MainFrame.Active = true
 MainFrame.Draggable = true
 MainFrame.Parent = ScreenGui
 
--- Top Bar & Buttons (-, [], X)
+-- Top Bar UI
 local TopBar = Instance.new("Frame")
 TopBar.Size = UDim2.new(1, 0, 0, 35)
-TopBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+TopBar.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 TopBar.Parent = MainFrame
 
 local ModBtn = Instance.new("TextButton")
 ModBtn.Size = UDim2.new(0, 50, 0, 50)
-ModBtn.Position = UDim2.new(0, 10, 0, 10)
+ModBtn.Position = UDim2.new(0.1, 0, 0.2, 0)
 ModBtn.Text = "MOD"
 ModBtn.Visible = false
+ModBtn.Draggable = true
 ModBtn.Parent = ScreenGui
 
-local CloseBtn = Instance.new("TextButton")
-CloseBtn.Size = UDim2.new(0, 35, 1, 0)
-CloseBtn.Position = UDim2.new(1, -35, 0, 0)
-CloseBtn.Text = "X"
-CloseBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
-CloseBtn.Parent = TopBar
-CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
+-- Buttons (X, -)
+local function CreateActionBtn(txt, pos, color, cb)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(0, 35, 1, 0)
+    b.Position = pos
+    b.Text = txt
+    b.BackgroundColor3 = color
+    b.Parent = TopBar
+    b.MouseButton1Click:Connect(cb)
+end
 
-local MinBtn = Instance.new("TextButton")
-MinBtn.Size = UDim2.new(0, 35, 1, 0)
-MinBtn.Position = UDim2.new(1, -105, 0, 0)
-MinBtn.Text = "-"
-MinBtn.Parent = TopBar
-MinBtn.MouseButton1Click:Connect(function() 
-    MainFrame.Visible = false 
-    ModBtn.Visible = true 
-end)
+CreateActionBtn("X", UDim2.new(1, -35, 0, 0), Color3.fromRGB(150, 0, 0), function() ScreenGui:Destroy() end)
+CreateActionBtn("-", UDim2.new(1, -105, 0, 0), Color3.fromRGB(60, 60, 60), function() MainFrame.Visible = false ModBtn.Visible = true end)
+ModBtn.MouseButton1Click:Connect(function() MainFrame.Visible = true ModBtn.Visible = false end)
 
-ModBtn.MouseButton1Click:Connect(function() 
-    MainFrame.Visible = true 
-    ModBtn.Visible = false 
-end)
-
--- [[ FITUR UTAMA ]] --
+-- Toggle & Dropdown State
+local activeFavs = {Common = false, Uncommon = false, Rare = false, Epic = false, Mythic = false, Secret = false}
 
 local function CreateToggle(name, pos, callback)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0, 260, 0, 40)
     btn.Position = pos
     btn.Text = name .. ": OFF"
-    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    btn.TextColor3 = Color3.new(1, 1, 1)
     btn.Parent = MainFrame
     
     local state = false
     btn.MouseButton1Click:Connect(function()
         state = not state
         btn.Text = name .. ": " .. (state and "ON" or "OFF")
-        btn.BackgroundColor3 = state and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(50, 50, 50)
+        btn.BackgroundColor3 = state and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(45, 45, 45)
         callback(state)
     end)
 end
 
--- 1. INSTANT CAST & CATCH (Blatant)
+-- [[ FITUR 1: INSTANT AUTO FISH ]]
 CreateToggle("Instant Auto Fish", UDim2.new(0, 20, 0, 50), function(val)
     _G.AutoFish = val
     spawn(function()
         while _G.AutoFish do
-            task.wait(0.1)
-            local char = game.Players.LocalPlayer.Character
-            local tool = char:FindFirstChildOfClass("Tool")
-            if tool then
-                -- Logic untuk melempar pancing instan
-                tool:Activate() 
-                -- Menunggu sedikit lalu menembak Remote Catch (Umumnya di Fish It)
-                task.wait(0.2)
-                local remote = tool:FindFirstChild("Remote") or game.ReplicatedStorage:FindFirstChild("Events")
-                if remote then
-                    -- Mengirim sinyal sukses ke server berkali-kali (Blatant)
-                    for i = 1, 5 do
-                        remote:FindFirstChildOfClass("RemoteEvent"):FireServer(true)
-                    end
-                end
-            end
+            task.wait(0.2)
+            -- Instant Cast
+            NetRF.ChargeFishingRod:InvokeServer(100)
+            NetRE.BaitCastVisual:FireServer(Vector3.new(0, 0, 0))
+            
+            -- Instant Catch
+            task.wait(0.4) -- Delay sedikit biar server nggak curiga/crash
+            NetRE.FishCaught:FireServer(true)
+            NetRE.FishingCompleted:FireServer()
         end
     end)
 end)
 
--- 2. DROPDOWN AUTO FAVORITE
+-- [[ FITUR 2: AUTO FAVORITE LIST ]]
 local FavList = Instance.new("ScrollingFrame")
 FavList.Size = UDim2.new(0.8, 0, 0, 150)
-FavList.Position = UDim2.new(0.1, 0, 0, 200)
+FavList.Position = UDim2.new(0.1, 0, 0, 250)
 FavList.Visible = false
-FavList.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+FavList.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 FavList.Parent = MainFrame
 
-local rarities = {"Common", "Uncommon", "Rare", "Epic", "Mythic", "Secret"}
-local activeFavs = {}
-
-for i, r in pairs(rarities) do
+for i, r in pairs({"Common", "Uncommon", "Rare", "Epic", "Mythic", "Secret"}) do
     local b = Instance.new("TextButton")
     b.Size = UDim2.new(1, 0, 0, 30)
     b.Position = UDim2.new(0, 0, 0, (i-1)*30)
@@ -111,24 +99,19 @@ for i, r in pairs(rarities) do
     b.MouseButton1Click:Connect(function()
         activeFavs[r] = not activeFavs[r]
         b.Text = r .. (activeFavs[r] and ": ON" or ": OFF")
-        b.BackgroundColor3 = activeFavs[r] and Color3.fromRGB(0, 120, 255) or Color3.fromRGB(50, 50, 50)
+        b.BackgroundColor3 = activeFavs[r] and Color3.fromRGB(0, 100, 200) or Color3.fromRGB(40, 40, 40)
     end)
 end
 
-CreateToggle("▼ Select Favorite Rarity", UDim2.new(0, 20, 0, 100), function(val)
+CreateToggle("▼ Favorite Settings", UDim2.new(0, 20, 0, 100), function(val)
     FavList.Visible = val
 end)
 
--- Logic Loop untuk Favorite
-spawn(function()
-    while true do
-        task.wait(2)
-        for rarity, isEnabled in pairs(activeFavs) do
-            if isEnabled then
-                -- Ganti 'RemoteFavorite' dengan nama remote favorit di game tersebut
-                print("Auto Favoriting: " .. rarity)
-                -- game.ReplicatedStorage.Events.Favorite:FireServer(rarity) 
-            end
-        end
+-- LOGIC: Mendeteksi ikan baru dan Favorite-kan otomatis
+NetRE.ObtainedNewFishNotification.OnClientEvent:Connect(function(fishData)
+    -- fishData biasanya berisi {Name = "...", Rarity = "Secret", Id = ...}
+    if fishData and activeFavs[fishData.Rarity] then
+        NetRE.FavoriteItem:FireServer(fishData.Id or fishData.Name)
+        print("Berhasil Favorite: " .. fishData.Rarity)
     end
 end)
