@@ -1,133 +1,141 @@
 local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
-local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
+local Character = LP.Character or LP.CharacterAdded:Wait()
 
 -- [[ SETTINGS ]] --
-_G.AutoObby = false
+_G.AutoFinish = false
+_G.AutoNext = false
 
 -- [[ UI SETUP ]] --
 local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 250, 0, 180)
-MainFrame.Position = UDim2.new(0.5, -125, 0.5, -90)
-MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-MainFrame.Active = true
-MainFrame.Draggable = true
+MainFrame.Size = UDim2.new(0, 280, 0, 250)
+MainFrame.Position = UDim2.new(0.5, -140, 0.5, -125)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+MainFrame.Active = true; MainFrame.Draggable = true
 
 local TopBar = Instance.new("Frame", MainFrame)
-TopBar.Size = UDim2.new(1, 0, 0, 35)
-TopBar.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+TopBar.Size = UDim2.new(1, 0, 0, 40)
+TopBar.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
 
 local Title = Instance.new("TextLabel", TopBar)
-Title.Text = "UNIVERSAL OBBY"
-Title.Size = UDim2.new(1, -80, 1, 0)
-Title.TextColor3 = Color3.new(1, 1, 1)
-Title.BackgroundTransparency = 1
-Title.Font = Enum.Font.SourceSansBold
+Title.Text = "UNIVERSAL OBBY MASTER V2"
+Title.Size = UDim2.new(1, -90, 1, 0); Title.TextColor3 = Color3.new(1, 1, 1)
+Title.BackgroundTransparency = 1; Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16
 
--- [[ MINIMIZE EZ 1:1 ]] --
+-- [[ MINIMIZE EZ ]] --
 local EZ_Box = Instance.new("TextButton", ScreenGui)
-EZ_Box.Size = UDim2.new(0, 50, 0, 50)
-EZ_Box.Position = UDim2.new(0.1, 0, 0.5, 0)
-EZ_Box.Text = "EZ"
-EZ_Box.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
-EZ_Box.TextColor3 = Color3.new(1, 1, 1)
-EZ_Box.Visible = false
-EZ_Box.Draggable = true
+EZ_Box.Size = UDim2.new(0, 55, 0, 55); EZ_Box.Position = UDim2.new(0.1, 0, 0.5, 0)
+EZ_Box.Text = "EZ"; EZ_Box.BackgroundColor3 = Color3.fromRGB(0, 100, 200); EZ_Box.TextColor3 = Color3.new(1, 1, 1)
+EZ_Box.Visible = false; EZ_Box.Draggable = true
 
--- [[ TOMBOL - & X ]] --
 local CloseBtn = Instance.new("TextButton", TopBar)
-CloseBtn.Text = "×"
-CloseBtn.Size = UDim2.new(0, 30, 0, 30)
-CloseBtn.Position = UDim2.new(1, -35, 0, 2)
-CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-CloseBtn.TextColor3 = Color3.new(1, 1, 1)
+CloseBtn.Text = "×"; CloseBtn.Size = UDim2.new(0, 32, 0, 32); CloseBtn.Position = UDim2.new(1, -38, 0, 4)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(180, 0, 0); CloseBtn.TextColor3 = Color3.new(1, 1, 1)
 
 local MinBtn = Instance.new("TextButton", TopBar)
-MinBtn.Text = "-"
-MinBtn.Size = UDim2.new(0, 30, 0, 30)
-MinBtn.Position = UDim2.new(1, -75, 0, 2) -- Memberi jarak dari tombol X
-MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-MinBtn.TextColor3 = Color3.new(1, 1, 1)
+MinBtn.Text = "-"; MinBtn.Size = UDim2.new(0, 32, 0, 32); MinBtn.Position = UDim2.new(1, -80, 0, 4)
+MinBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50); MinBtn.TextColor3 = Color3.new(1, 1, 1)
 
--- UI Logic
-MinBtn.MouseButton1Click:Connect(function()
-    MainFrame.Visible = false
-    EZ_Box.Visible = true
+MinBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false; EZ_Box.Visible = true end)
+EZ_Box.MouseButton1Click:Connect(function() MainFrame.Visible = true; EZ_Box.Visible = false end)
+CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
+
+-- [[ LOGIC DETEKSI CERDAS ]] --
+local function GetFinishPart()
+    local keywords = {"finish", "goal", "end", "winner", "trophy", "victory", "final"}
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v:IsA("BasePart") or v:IsA("Model") then
+            for _, key in pairs(keywords) do
+                if v.Name:lower():find(key) then
+                    return (v:IsA("Model") and v:FindFirstChildWhichIsA("BasePart") or v)
+                end
+            end
+        end
+    end
+    return nil
+end
+
+local function GetAllCheckpoints()
+    local cp_table = {}
+    local checkpoint_keywords = {"checkpoint", "stage", "spawn", "level", "part"}
+    
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v:IsA("BasePart") or v:IsA("SpawnLocation") then
+            local name = v.Name:lower()
+            local is_cp = false
+            
+            -- Cek berdasarkan nama
+            for _, key in pairs(checkpoint_keywords) do
+                if name:find(key) or tonumber(name) then
+                    is_cp = true; break
+                end
+            end
+            
+            -- Cek jika part transparan (sering jadi invisible checkpoint)
+            if v.Transparency > 0.5 and v.CanTouch == true and v.Size.Y < 2 then
+                is_cp = true
+            end
+
+            if is_cp then table.insert(cp_table, v) end
+        end
+    end
+    
+    -- Urutkan berdasarkan angka di nama atau posisi Y jika tidak ada angka
+    table.sort(cp_table, function(a, b)
+        local aNum = tonumber(a.Name:match("%d+")) or a.Position.Y
+        local bNum = tonumber(b.Name:match("%d+")) or b.Position.Y
+        return aNum < bNum
+    end)
+    return cp_table
+end
+
+-- [[ BUTTONS ]] --
+local function CreateButton(txt, pos, cb)
+    local btn = Instance.new("TextButton", MainFrame)
+    btn.Size = UDim2.new(0, 240, 0, 45); btn.Position = pos
+    btn.Text = txt .. ": OFF"; btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40); btn.TextColor3 = Color3.new(1, 1, 1)
+    local state = false
+    btn.MouseButton1Click:Connect(function()
+        state = not state
+        btn.Text = txt .. ": " .. (state and "ON" or "OFF")
+        btn.BackgroundColor3 = state and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(40, 40, 40)
+        cb(state)
+    end)
+end
+
+CreateButton("Auto Finish (All Keywords)", UDim2.new(0, 20, 0, 60), function(v)
+    if v then
+        local f = GetFinishPart()
+        if f then 
+            LP.Character.HumanoidRootPart.CFrame = f.CFrame * CFrame.new(0, 3, 0)
+        else
+            print("Finish tidak ditemukan!")
+        end
+    end
 end)
 
-EZ_Box.MouseButton1Click:Connect(function()
-    MainFrame.Visible = true
-    EZ_Box.Visible = false
+CreateButton("Teleport Next Checkpoint", UDim2.new(0, 20, 0, 120), function(v)
+    _G.AutoNext = v
 end)
 
-CloseBtn.MouseButton1Click:Connect(function()
-    ScreenGui:Destroy()
-end)
-
--- [[ AUTO OBBY TOGGLE ]] --
-local ToggleBtn = Instance.new("TextButton", MainFrame)
-ToggleBtn.Size = UDim2.new(0, 200, 0, 50)
-ToggleBtn.Position = UDim2.new(0, 25, 0, 70)
-ToggleBtn.Text = "AUTO FINISH: OFF"
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-ToggleBtn.TextColor3 = Color3.new(1, 1, 1)
-
-ToggleBtn.MouseButton1Click:Connect(function()
-    _G.AutoObby = not _G.AutoObby
-    ToggleBtn.Text = "AUTO FINISH: " .. (_G.AutoObby and "ON" or "OFF")
-    ToggleBtn.BackgroundColor3 = _G.AutoObby and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(45, 45, 45)
-end)
-
--- [[ LOGIC AUTO TELEPORT ]] --
+-- Loop Auto Next Checkpoint
 spawn(function()
-    while task.wait(0.1) do
-        if _G.AutoObby then
+    while task.wait(0.05) do
+        if _G.AutoNext then
             pcall(function()
-                local char = LP.Character
-                local root = char and char:FindFirstChild("HumanoidRootPart")
-                
-                -- Mencari Checkpoints/Stages/Parts
-                local folderNames = {"Checkpoints", "Stages", "Levels", "Spawns"}
-                local checkpoints = {}
-
-                for _, name in pairs(folderNames) do
-                    local f = workspace:FindFirstChild(name) or workspace:FindFirstChild(name:lower())
-                    if f then
-                        for _, cp in pairs(f:GetChildren()) do
-                            table.insert(checkpoints, cp)
-                        end
-                    end
+                local cps = GetAllCheckpoints()
+                for _, cp in ipairs(cps) do
+                    if not _G.AutoNext then break end
+                    LP.Character.HumanoidRootPart.CFrame = cp.CFrame * CFrame.new(0, 3, 0)
+                    task.wait(0.05) -- Kecepatan sangat tinggi
                 end
+                _G.AutoNext = false
+            end)
+        end
+    end
+end)
 
-                -- Jika tidak ada folder khusus, cari part bernama angka atau "Stage"
-                if #checkpoints == 0 then
-                    for _, v in pairs(workspace:GetDescendants()) do
-                        if v:IsA("BasePart") and (tonumber(v.Name) or v.Name:lower():find("stage") or v.Name:lower():find("checkpoint")) then
-                            table.insert(checkpoints, v)
-                        end
-                    end
-                end
-
-                -- Urutkan berdasarkan nama (agar urut stage 1, 2, 3...)
-                table.sort(checkpoints, function(a, b)
-                    return tonumber(a.Name) or 0 < tonumber(b.Name) or 0
-                end)
-
-                -- Teleport ke setiap checkpoint dengan cepat
-                for _, cp in ipairs(checkpoints) do
-                    if not _G.AutoObby then break end
-                    if cp:IsA("BasePart") then
-                        root.CFrame = cp.CFrame * CFrame.new(0, 3, 0)
-                        task.wait(0.05) -- Kecepatan teleport (sangat cepat)
-                    end
-                end
-                
-                -- Setelah semua checkpoint, cari finish line
-                _G.AutoObby = false
-                ToggleBtn.Text = "AUTO FINISH: OFF"
-                ToggleBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
             end)
         end
     end
