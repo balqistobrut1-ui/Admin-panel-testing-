@@ -1,155 +1,134 @@
--- [[ FISH IT MODDED - CUSTOM SCRIPT BY GEMINI ]] --
-
+-- [[ FISH IT MODDED - FULL VERSION ]] --
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "FishItMod"
 ScreenGui.Parent = game.CoreGui
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
--- Variabel Status (ON/OFF)
-local FastCatchEnabled = false
-local InstantCastEnabled = false
-
--- 1. Tombol MOD (Floating 1:1)
-local ModButton = Instance.new("TextButton")
-ModButton.Size = UDim2.new(0, 50, 0, 50)
-ModButton.Position = UDim2.new(0, 10, 0, 150)
-ModButton.Text = "MOD"
-ModButton.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-ModButton.Parent = ScreenGui
-ModButton.Visible = false
-ModButton.Draggable = true -- Biar bisa dipindah di HP
-
--- 2. Frame Utama
+-- Main Frame
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 280, 0, 320)
-MainFrame.Position = UDim2.new(0.5, -140, 0.5, -160)
+MainFrame.Size = UDim2.new(0, 300, 0, 380)
+MainFrame.Position = UDim2.new(0.5, -150, 0.5, -190)
 MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-MainFrame.BorderSizePixel = 2
 MainFrame.Active = true
 MainFrame.Draggable = true
 MainFrame.Parent = ScreenGui
 
--- Top Bar
+-- Top Bar & Buttons (-, [], X)
 local TopBar = Instance.new("Frame")
 TopBar.Size = UDim2.new(1, 0, 0, 35)
-TopBar.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+TopBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 TopBar.Parent = MainFrame
 
-local Title = Instance.new("TextLabel")
-Title.Text = "FISH IT MODDED"
-Title.Size = UDim2.new(0.5, 0, 1, 0)
-Title.Position = UDim2.new(0, 10, 0, 0)
-Title.BackgroundTransparency = 1
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.Parent = TopBar
+local ModBtn = Instance.new("TextButton")
+ModBtn.Size = UDim2.new(0, 50, 0, 50)
+ModBtn.Position = UDim2.new(0, 10, 0, 10)
+ModBtn.Text = "MOD"
+ModBtn.Visible = false
+ModBtn.Parent = ScreenGui
 
--- Tombol Close (X)
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Size = UDim2.new(0, 35, 1, 0)
 CloseBtn.Position = UDim2.new(1, -35, 0, 0)
 CloseBtn.Text = "X"
-CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
 CloseBtn.Parent = TopBar
 CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
--- Tombol Minimize (-)
 local MinBtn = Instance.new("TextButton")
 MinBtn.Size = UDim2.new(0, 35, 1, 0)
 MinBtn.Position = UDim2.new(1, -105, 0, 0)
 MinBtn.Text = "-"
 MinBtn.Parent = TopBar
-MinBtn.MouseButton1Click:Connect(function()
-    MainFrame.Visible = false
-    ModButton.Visible = true
+MinBtn.MouseButton1Click:Connect(function() 
+    MainFrame.Visible = false 
+    ModBtn.Visible = true 
 end)
 
-ModButton.MouseButton1Click:Connect(function()
-    MainFrame.Visible = true
-    ModButton.Visible = false
+ModBtn.MouseButton1Click:Connect(function() 
+    MainFrame.Visible = true 
+    ModBtn.Visible = false 
 end)
 
--- Tombol Scale ([ ])
-local ScaleBtn = Instance.new("TextButton")
-ScaleBtn.Size = UDim2.new(0, 35, 1, 0)
-ScaleBtn.Position = UDim2.new(1, -70, 0, 0)
-ScaleBtn.Text = "[ ]"
-ScaleBtn.Parent = TopBar
+-- [[ FITUR UTAMA ]] --
 
-local isBig = false
-ScaleBtn.MouseButton1Click:Connect(function()
-    if isBig then MainFrame.Size = UDim2.new(0, 280, 0, 320) else MainFrame.Size = UDim2.new(0, 320, 0, 380) end
-    isBig = not isBig
-end)
-
--- Fungsi Membuat Tombol Toggle
 local function CreateToggle(name, pos, callback)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 240, 0, 40)
+    btn.Size = UDim2.new(0, 260, 0, 40)
     btn.Position = pos
     btn.Text = name .. ": OFF"
-    btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
     btn.Parent = MainFrame
     
     local state = false
     btn.MouseButton1Click:Connect(function()
         state = not state
         btn.Text = name .. ": " .. (state and "ON" or "OFF")
-        btn.BackgroundColor3 = state and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(60, 60, 60)
+        btn.BackgroundColor3 = state and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(50, 50, 50)
         callback(state)
     end)
 end
 
--- [[ LOGIC FITUR FISH IT ]] --
-
--- 1. INSTANT CAST (Lempar Pancing Langsung Kena Air)
-CreateToggle("Instant Cast", UDim2.new(0, 20, 0, 50), function(val)
-    InstantCastEnabled = val
+-- 1. INSTANT CAST & CATCH (Blatant)
+CreateToggle("Instant Auto Fish", UDim2.new(0, 20, 0, 50), function(val)
+    _G.AutoFish = val
     spawn(function()
-        while InstantCastEnabled do
-            wait(0.1)
-            -- Logic: Mencari tool pancing dan mempercepat animasi cast
-            local character = game.Players.LocalPlayer.Character
-            if character and character:FindFirstChildOfClass("Tool") then
-                local tool = character:FindFirstChildOfClass("Tool")
-                if tool:FindFirstChild("Cast") then
-                    -- Biasanya mengganti durasi casting menjadi 0
-                    -- Ini butuh penyesuaian tergantung script asli gamenya
+        while _G.AutoFish do
+            task.wait(0.1)
+            local char = game.Players.LocalPlayer.Character
+            local tool = char:FindFirstChildOfClass("Tool")
+            if tool then
+                -- Logic untuk melempar pancing instan
+                tool:Activate() 
+                -- Menunggu sedikit lalu menembak Remote Catch (Umumnya di Fish It)
+                task.wait(0.2)
+                local remote = tool:FindFirstChild("Remote") or game.ReplicatedStorage:FindFirstChild("Events")
+                if remote then
+                    -- Mengirim sinyal sukses ke server berkali-kali (Blatant)
+                    for i = 1, 5 do
+                        remote:FindFirstChildOfClass("RemoteEvent"):FireServer(true)
+                    end
                 end
             end
         end
     end)
 end)
 
--- 2. INSTANT CATCH (Langsung Tarik & Dapat)
-CreateToggle("Instant Catch", UDim2.new(0, 20, 0, 100), function(val)
-    FastCatchEnabled = val
-    if FastCatchEnabled then
-        -- Blatant Method: Bypass minigame
-        game:GetService("RunService").Stepped:Connect(function()
-            if not FastCatchEnabled then return end
-            -- Mencari RemoteEvent 'FishCaught' atau 'Result'
-            -- Contoh umum di game Fish It:
-            local events = game:GetService("ReplicatedStorage"):FindFirstChild("Events")
-            if events and events:FindFirstChild("CatchFish") then
-                events.CatchFish:FireServer(true) -- Mengirim sinyal sukses ke server
+-- 2. DROPDOWN AUTO FAVORITE
+local FavList = Instance.new("ScrollingFrame")
+FavList.Size = UDim2.new(0.8, 0, 0, 150)
+FavList.Position = UDim2.new(0.1, 0, 0, 200)
+FavList.Visible = false
+FavList.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+FavList.Parent = MainFrame
+
+local rarities = {"Common", "Uncommon", "Rare", "Epic", "Mythic", "Secret"}
+local activeFavs = {}
+
+for i, r in pairs(rarities) do
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1, 0, 0, 30)
+    b.Position = UDim2.new(0, 0, 0, (i-1)*30)
+    b.Text = r .. ": OFF"
+    b.Parent = FavList
+    b.MouseButton1Click:Connect(function()
+        activeFavs[r] = not activeFavs[r]
+        b.Text = r .. (activeFavs[r] and ": ON" or ": OFF")
+        b.BackgroundColor3 = activeFavs[r] and Color3.fromRGB(0, 120, 255) or Color3.fromRGB(50, 50, 50)
+    end)
+end
+
+CreateToggle("▼ Select Favorite Rarity", UDim2.new(0, 20, 0, 100), function(val)
+    FavList.Visible = val
+end)
+
+-- Logic Loop untuk Favorite
+spawn(function()
+    while true do
+        task.wait(2)
+        for rarity, isEnabled in pairs(activeFavs) do
+            if isEnabled then
+                -- Ganti 'RemoteFavorite' dengan nama remote favorit di game tersebut
+                print("Auto Favoriting: " .. rarity)
+                -- game.ReplicatedStorage.Events.Favorite:FireServer(rarity) 
             end
-        end)
+        end
     end
 end)
-
--- 3. AUTO FAVORITE (Common -> Secret)
-CreateToggle("Auto Favorite All", UDim2.new(0, 20, 0, 150), function(val)
-    local favOn = val
-    spawn(function()
-        while favOn do
-            wait(1)
-            local rarities = {"Common", "Uncommon", "Rare", "Epic", "Mythic", "Secret"}
-            -- Di sini masukkan remote untuk favorite ikan
-            -- print("Favoriting items...")
-        end
-    end)
-end)
-
-print("Script Loaded! Gunakan Delta untuk eksekusi.")
