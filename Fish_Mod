@@ -1,0 +1,155 @@
+-- [[ FISH IT MODDED - CUSTOM SCRIPT BY GEMINI ]] --
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "FishItMod"
+ScreenGui.Parent = game.CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- Variabel Status (ON/OFF)
+local FastCatchEnabled = false
+local InstantCastEnabled = false
+
+-- 1. Tombol MOD (Floating 1:1)
+local ModButton = Instance.new("TextButton")
+ModButton.Size = UDim2.new(0, 50, 0, 50)
+ModButton.Position = UDim2.new(0, 10, 0, 150)
+ModButton.Text = "MOD"
+ModButton.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+ModButton.Parent = ScreenGui
+ModButton.Visible = false
+ModButton.Draggable = true -- Biar bisa dipindah di HP
+
+-- 2. Frame Utama
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 280, 0, 320)
+MainFrame.Position = UDim2.new(0.5, -140, 0.5, -160)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+MainFrame.BorderSizePixel = 2
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+-- Top Bar
+local TopBar = Instance.new("Frame")
+TopBar.Size = UDim2.new(1, 0, 0, 35)
+TopBar.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+TopBar.Parent = MainFrame
+
+local Title = Instance.new("TextLabel")
+Title.Text = "FISH IT MODDED"
+Title.Size = UDim2.new(0.5, 0, 1, 0)
+Title.Position = UDim2.new(0, 10, 0, 0)
+Title.BackgroundTransparency = 1
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = TopBar
+
+-- Tombol Close (X)
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 35, 1, 0)
+CloseBtn.Position = UDim2.new(1, -35, 0, 0)
+CloseBtn.Text = "X"
+CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+CloseBtn.Parent = TopBar
+CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
+
+-- Tombol Minimize (-)
+local MinBtn = Instance.new("TextButton")
+MinBtn.Size = UDim2.new(0, 35, 1, 0)
+MinBtn.Position = UDim2.new(1, -105, 0, 0)
+MinBtn.Text = "-"
+MinBtn.Parent = TopBar
+MinBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
+    ModButton.Visible = true
+end)
+
+ModButton.MouseButton1Click:Connect(function()
+    MainFrame.Visible = true
+    ModButton.Visible = false
+end)
+
+-- Tombol Scale ([ ])
+local ScaleBtn = Instance.new("TextButton")
+ScaleBtn.Size = UDim2.new(0, 35, 1, 0)
+ScaleBtn.Position = UDim2.new(1, -70, 0, 0)
+ScaleBtn.Text = "[ ]"
+ScaleBtn.Parent = TopBar
+
+local isBig = false
+ScaleBtn.MouseButton1Click:Connect(function()
+    if isBig then MainFrame.Size = UDim2.new(0, 280, 0, 320) else MainFrame.Size = UDim2.new(0, 320, 0, 380) end
+    isBig = not isBig
+end)
+
+-- Fungsi Membuat Tombol Toggle
+local function CreateToggle(name, pos, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 240, 0, 40)
+    btn.Position = pos
+    btn.Text = name .. ": OFF"
+    btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Parent = MainFrame
+    
+    local state = false
+    btn.MouseButton1Click:Connect(function()
+        state = not state
+        btn.Text = name .. ": " .. (state and "ON" or "OFF")
+        btn.BackgroundColor3 = state and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(60, 60, 60)
+        callback(state)
+    end)
+end
+
+-- [[ LOGIC FITUR FISH IT ]] --
+
+-- 1. INSTANT CAST (Lempar Pancing Langsung Kena Air)
+CreateToggle("Instant Cast", UDim2.new(0, 20, 0, 50), function(val)
+    InstantCastEnabled = val
+    spawn(function()
+        while InstantCastEnabled do
+            wait(0.1)
+            -- Logic: Mencari tool pancing dan mempercepat animasi cast
+            local character = game.Players.LocalPlayer.Character
+            if character and character:FindFirstChildOfClass("Tool") then
+                local tool = character:FindFirstChildOfClass("Tool")
+                if tool:FindFirstChild("Cast") then
+                    -- Biasanya mengganti durasi casting menjadi 0
+                    -- Ini butuh penyesuaian tergantung script asli gamenya
+                end
+            end
+        end
+    end)
+end)
+
+-- 2. INSTANT CATCH (Langsung Tarik & Dapat)
+CreateToggle("Instant Catch", UDim2.new(0, 20, 0, 100), function(val)
+    FastCatchEnabled = val
+    if FastCatchEnabled then
+        -- Blatant Method: Bypass minigame
+        game:GetService("RunService").Stepped:Connect(function()
+            if not FastCatchEnabled then return end
+            -- Mencari RemoteEvent 'FishCaught' atau 'Result'
+            -- Contoh umum di game Fish It:
+            local events = game:GetService("ReplicatedStorage"):FindFirstChild("Events")
+            if events and events:FindFirstChild("CatchFish") then
+                events.CatchFish:FireServer(true) -- Mengirim sinyal sukses ke server
+            end
+        end)
+    end
+end)
+
+-- 3. AUTO FAVORITE (Common -> Secret)
+CreateToggle("Auto Favorite All", UDim2.new(0, 20, 0, 150), function(val)
+    local favOn = val
+    spawn(function()
+        while favOn do
+            wait(1)
+            local rarities = {"Common", "Uncommon", "Rare", "Epic", "Mythic", "Secret"}
+            -- Di sini masukkan remote untuk favorite ikan
+            -- print("Favoriting items...")
+        end
+    end)
+end)
+
+print("Script Loaded! Gunakan Delta untuk eksekusi.")
