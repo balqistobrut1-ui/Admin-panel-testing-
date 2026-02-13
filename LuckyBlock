@@ -1,0 +1,220 @@
+-- ===========================================
+-- AUTO TELEPORT BRAINROT TO BASE
+-- Break a Lucky Block Script
+-- ===========================================
+
+local Player = game:GetService("Players").LocalPlayer
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Konfigurasi
+local Settings = {
+    AutoTeleport = true,
+    TeleportDelay = 0.5, -- Delay setelah dapat brainrot
+    CheckInterval = 0.1, -- Interval pengecekan inventory
+    BrainrotNames = {"Brainrot", "BrainRot", "Brain_rot", "LegendaryBrainrot"} -- Variasi nama item
+}
+
+-- Variabel untuk tracking
+local hadBrainrot = false
+local basePosition = nil
+
+-- Fungsi untuk mencari posisi base pemain
+local function findBasePosition()
+    -- Method 1: Cari base berdasarkan owner
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        if obj:IsA("Model") and obj:FindFirstChild("Owner") then
+            local ownerValue = obj:FindFirstChild("Owner")
+            if ownerValue and ownerValue.Value == Player then
+                local primaryPart = obj.PrimaryPart or obj:FindFirstChild("Part") or obj:FindFirstChild("Base")
+                if primaryPart then
+                    return primaryPart.Position
+                end
+            end
+        end
+    end
+    
+    -- Method 2: Cari base dengan nama mengandung "Base"
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        if obj:IsA("Model") and string.find(obj.Name, "Base") then
+            for _, part in pairs(obj:GetDescendants()) do
+                if part:IsA("Part") and part.Position.Y < 50 then -- Filter base di ground
+                    return part.Position
+                end
+            end
+        end
+    end
+    
+    -- Method 3: Default ke spawn location
+    local spawn = Workspace:FindFirstChild("SpawnLocation") or Workspace:FindFirstChild("BaseSpawn")
+    if spawn then
+        return spawn.Position
+    end
+    
+    return Vector3.new(0, 50, 0) -- Default fallback
+end
+
+-- Fungsi untuk mengecek apakah player punya brainrot
+local function hasBrainrot()
+    local playerGui = Player:FindFirstChild("PlayerGui")
+    if not playerGui then return false end
+    
+    -- Cek di backpack/inventory
+    local backpack = Player:FindFirstChild("Backpack")
+    if backpack then
+        for _, item in pairs(backpack:GetChildren()) do
+            for _, name in pairs(Settings.BrainrotNames) do
+                if string.find(item.Name, name) then
+                    return true
+                end
+            end
+        end
+    end
+    
+    -- Cek di leaderstats jika ada
+    local leaderstats = Player:FindFirstChild("leaderstats")
+    if leaderstats then
+        for _, stat in pairs(leaderstats:GetChildren()) do
+            if stat:IsA("NumberValue") and string.find(stat.Name, "Brainrot") and stat.Value > 0 then
+                return true
+            end
+        end
+    end
+    
+    return false
+end
+
+-- Fungsi teleport ke base
+local function teleportToBase()
+    if not Player.Character or not Player.Character:FindFirstChild("HumanoidRootPart") then
+        return false
+    end
+    
+    -- Update base position setiap kali teleport (antisipasi base pindah)
+    basePosition = findBasePosition()
+    
+    local rootPart = Player.Character.HumanoidRootPart
+    rootPart.CFrame = CFrame.new(basePosition + Vector3.new(0, 5, 0)) -- Sedikit di atas base
+    
+    -- Notifikasi
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Brainrot Detected!",
+        Text = "Teleport ke base...",
+        Duration = 2,
+        Icon = "rbxassetid://4483345998"
+    })
+    
+    return true
+end
+
+-- Main loop untuk monitoring brainrot
+local function startMonitoring()
+    print("🚀 Auto Teleport Brainrot dimulai!")
+    print("📍 Mencari base position...")
+    
+    basePosition = findBasePosition()
+    print("📍 Base position: " .. tostring(basePosition))
+    
+    -- Loop pengecekan
+    RunService.Heartbeat:Connect(function()
+        if not Settings.AutoTeleport then return end
+        
+        local currentHasBrainrot = hasBrainrot()
+        
+        -- Jika baru saja mendapatkan brainrot
+        if currentHasBrainrot and not hadBrainrot then
+            print("🎉 Brainrot didapatkan! Menunggu " .. Settings.TeleportDelay .. " detik...")
+            
+            -- Delay sebelum teleport
+            task.wait(Settings.TeleportDelay)
+            
+            -- Teleport ke base
+            teleportToBase()
+            
+            hadBrainrot = true
+            
+        -- Jika brainrot hilang (sudah disimpan/dikumpulkan)
+        elseif not currentHasBrainrot and hadBrainrot then
+            print("✅ Brainrot telah dikumpulkan")
+            hadBrainrot = false
+        end
+    end)
+end
+
+-- GUI Control Panel
+local function createGUI()
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "BrainrotTeleportGUI"
+    ScreenGui.Parent = game:GetService("CoreGui")
+    
+    local MainFrame = Instance.new("Frame")
+    MainFrame.Size = UDim2.new(0, 250, 0, 120)
+    MainFrame.Position = UDim2.new(0.02, 0, 0.5, -60)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+    MainFrame.BorderSizePixel = 0
+    MainFrame.Parent = ScreenGui
+    
+    local UICorner = Instance.new("UICorner")
+    UICorner.CornerRadius = UDim.new(0, 8)
+    UICorner.Parent = MainFrame
+    
+    local Title = Instance.new("TextLabel")
+    Title.Size = UDim2.new(1, 0, 0, 30)
+    Title.Text = "⚡ Brainrot Teleport"
+    Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Title.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+    Title.Font = Enum.Font.GothamBold
+    Title.TextSize = 14
+    Title.Parent = MainFrame
+    
+    local ToggleBtn = Instance.new("TextButton")
+    ToggleBtn.Size = UDim2.new(0.8, 0, 0, 35)
+    ToggleBtn.Position = UDim2.new(0.1, 0, 0.4, 0)
+    ToggleBtn.BackgroundColor3 = Settings.AutoTeleport and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
+    ToggleBtn.Text = Settings.AutoTeleport and "ON" or "OFF"
+    ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    ToggleBtn.Font = Enum.Font.Gotham
+    ToggleBtn.TextSize = 16
+    ToggleBtn.Parent = MainFrame
+    
+    local Status = Instance.new("TextLabel")
+    Status.Size = UDim2.new(1, 0, 0, 25)
+    Status.Position = UDim2.new(0, 0, 0.8, 0)
+    Status.Text = "Status: " .. (hadBrainrot and "Memiliki Brainrot" or "Menunggu Brainrot")
+    Status.TextColor3 = Color3.fromRGB(200, 200, 200)
+    Status.BackgroundTransparency = 1
+    Status.Font = Enum.Font.Gotham
+    Status.TextSize = 12
+    Status.Parent = MainFrame
+    
+    ToggleBtn.MouseButton1Click:Connect(function()
+        Settings.AutoTeleport = not Settings.AutoTeleport
+        ToggleBtn.BackgroundColor3 = Settings.AutoTeleport and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
+        ToggleBtn.Text = Settings.AutoTeleport and "ON" or "OFF"
+    end)
+    
+    -- Update status setiap detik
+    game:GetService("RunService").Stepped:Connect(function()
+        Status.Text = "Status: " .. (hadBrainrot and "✅ Memiliki Brainrot" or "⏳ Menunggu Brainrot")
+    end)
+    
+    return ScreenGui
+end
+
+-- Inisialisasi
+pcall(function()
+    -- Tunggu player siap
+    repeat task.wait() until Player.Character
+    
+    -- Buat GUI
+    createGUI()
+    
+    -- Mulai monitoring
+    startMonitoring()
+    
+    print("✅ Script Brainrot Teleporter siap!")
+    print("📌 Script akan auto teleport ke base saat mendapatkan Brainrot")
+end)
+
+return Settings
