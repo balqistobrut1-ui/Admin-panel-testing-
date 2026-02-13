@@ -1,14 +1,14 @@
 local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
 local TweenService = game:GetService("TweenService")
-local CoreGui = game:GetService("CoreGui")
+local RunService = game:GetService("RunService")
 
 -- [[ UI SETUP ]] --
-local ScreenGui = Instance.new("ScreenGui", CoreGui)
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 280, 0, 400)
-MainFrame.Position = UDim2.new(0.5, -140, 0.5, -200)
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+MainFrame.Size = UDim2.new(0, 320, 0, 450)
+MainFrame.Position = UDim2.new(0.5, -160, 0.5, -225)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 MainFrame.Active = true
 MainFrame.Draggable = true
 
@@ -16,101 +16,111 @@ local TopBar = Instance.new("Frame", MainFrame)
 TopBar.Size = UDim2.new(1, 0, 0, 35)
 TopBar.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
 
--- [[ MINIMIZE SYSTEM ]] --
+-- [[ MINIMIZE RG ]] --
 local RG_Box = Instance.new("TextButton", ScreenGui)
 RG_Box.Size = UDim2.new(0, 50, 0, 50)
-RG_Box.Position = UDim2.new(0.1, 0, 0.4, 0)
-RG_Box.Text = "RG"
-RG_Box.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
-RG_Box.TextColor3 = Color3.new(1,1,1)
-RG_Box.Visible = false
-RG_Box.Draggable = true
+RG_Box.Position = UDim2.new(0.1, 0, 0.5, 0)
+RG_Box.Text = "RG"; RG_Box.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+RG_Box.TextColor3 = Color3.new(1,1,1); RG_Box.Visible = false; RG_Box.Draggable = true
 
 local MinBtn = Instance.new("TextButton", TopBar)
 MinBtn.Text = "-"; MinBtn.Size = UDim2.new(0, 35, 1, 0); MinBtn.Position = UDim2.new(1, -35, 0, 0)
 MinBtn.BackgroundTransparency = 1; MinBtn.TextColor3 = Color3.new(1,1,1)
-
 MinBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false RG_Box.Visible = true end)
 RG_Box.MouseButton1Click:Connect(function() MainFrame.Visible = true RG_Box.Visible = false end)
 
--- [[ SLIDER SETUP ]] --
-local Speed = 100
-local SliderFrame = Instance.new("Frame", MainFrame)
-SliderFrame.Size = UDim2.new(0, 240, 0, 10); SliderFrame.Position = UDim2.new(0, 20, 0, 220)
-SliderFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+-- [[ SETTINGS ]] --
+_G.Height = 10; _G.TweenSpeed = 100; _G.Skills = {["1"]=false, ["2"]=false, ["3"]=false, ["4"]=false, ["5"]=false}
 
-local SliderBtn = Instance.new("TextButton", SliderFrame)
-SliderBtn.Size = UDim2.new(0, 20, 0, 20); SliderBtn.Position = UDim2.new(0.5, -10, 0, -5)
-SliderBtn.Text = ""; SliderBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-
-local SpeedDisplay = Instance.new("TextLabel", MainFrame)
-SpeedDisplay.Size = UDim2.new(1, 0, 0, 20); SpeedDisplay.Position = UDim2.new(0, 0, 0, 195)
-SpeedDisplay.Text = "Tween Speed: 100"; SpeedDisplay.TextColor3 = Color3.new(1,1,1); SpeedDisplay.BackgroundTransparency = 1
-
--- Slider Logic
-local dragging = false
-SliderBtn.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = true end
-end)
-game:GetService("UserInputService").InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end
-end)
-game:GetService("UserInputService").InputChanged:Connect(function(input)
-    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local pos = math.clamp((input.Position.X - SliderFrame.AbsolutePosition.X) / SliderFrame.AbsoluteSize.X, 0, 1)
-        SliderBtn.Position = UDim2.new(pos, -10, 0, -5)
-        Speed = math.floor(pos * 200)
-        SpeedDisplay.Text = "Tween Speed: " .. tostring(Speed)
-    end
-end)
-
--- [[ TOGGLE MAKER ]] --
-local function AddToggle(name, pos, callback)
-    local btn = Instance.new("TextButton", MainFrame)
-    btn.Size = UDim2.new(0, 240, 0, 40); btn.Position = pos
-    btn.Text = name .. ": OFF"; btn.BackgroundColor3 = Color3.fromRGB(40,40,40); btn.TextColor3 = Color3.new(1,1,1)
-    local state = false
-    btn.MouseButton1Click:Connect(function()
-        state = not state
-        btn.Text = name .. ": " .. (state and "ON" or "OFF")
-        btn.BackgroundColor3 = state and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(40,40,40)
-        callback(state)
+-- [[ UI COMPONENTS ]] --
+local function CreateToggle(name, pos, cb)
+    local b = Instance.new("TextButton", MainFrame)
+    b.Size = UDim2.new(0, 280, 0, 35); b.Position = pos
+    b.Text = name .. ": OFF"; b.BackgroundColor3 = Color3.fromRGB(35, 35, 35); b.TextColor3 = Color3.new(1,1,1)
+    local s = false
+    b.MouseButton1Click:Connect(function()
+        s = not s
+        b.Text = name .. ": " .. (s and "ON" or "OFF")
+        b.BackgroundColor3 = s and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(35, 35, 35)
+        cb(s)
     end)
 end
 
--- [[ LOGIC FARM ]] --
-AddToggle("Teleport Farm (Instant)", UDim2.new(0, 20, 0, 50), function(v) _G.Tele = v end)
-AddToggle("Tween Farm (Slider)", UDim2.new(0, 20, 0, 100), function(v) _G.Tween = v end)
-AddToggle("Auto Stats", UDim2.new(0, 20, 0, 150), function(v) _G.Stats = v end)
+-- Skill Selector (✓ / ✗)
+local SkillFrame = Instance.new("Frame", MainFrame)
+SkillFrame.Size = UDim2.new(0, 280, 0, 40); SkillFrame.Position = UDim2.new(0, 20, 0, 220); SkillFrame.BackgroundTransparency = 1
+for i=1, 5 do
+    local sk = Instance.new("TextButton", SkillFrame)
+    sk.Size = UDim2.new(0, 50, 0, 35); sk.Position = UDim2.new(0, (i-1)*55, 0, 0)
+    sk.Text = i..": ✗"; sk.BackgroundColor3 = Color3.fromRGB(60, 0, 0); sk.TextColor3 = Color3.new(1,1,1)
+    sk.MouseButton1Click:Connect(function()
+        _G.Skills[tostring(i)] = not _G.Skills[tostring(i)]
+        sk.Text = i..( _G.Skills[tostring(i)] and ": ✓" or ": ✗")
+        sk.BackgroundColor3 = _G.Skills[tostring(i)] and Color3.fromRGB(0, 100, 0) or Color3.fromRGB(60, 0, 0)
+    end)
+end
 
+-- Height Slider (Boss)
+local HSlider = Instance.new("Frame", MainFrame)
+HSlider.Size = UDim2.new(0, 10, 0, 100); HSlider.Position = UDim2.new(1, -25, 0, 50); HSlider.BackgroundColor3 = Color3.new(0.2,0.2,0.2)
+local HBtn = Instance.new("TextButton", HSlider)
+HBtn.Size = UDim2.new(0, 20, 0, 20); HBtn.Position = UDim2.new(-0.5, 0, 0, 0); HBtn.Text = ""; HBtn.BackgroundColor3 = Color3.new(1,0,0)
+
+HBtn.MouseButton1Down:Connect(function()
+    local move; move = game:GetService("UserInputService").InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            local rel = math.clamp((input.Position.Y - HSlider.AbsolutePosition.Y) / HSlider.AbsoluteSize.Y, 0, 1)
+            HBtn.Position = UDim2.new(-0.5, 0, rel, -10)
+            _G.Height = math.floor(rel * 100)
+        end
+    end)
+    game:GetService("UserInputService").InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then move:Disconnect() end end)
+end)
+
+-- [[ FARMING LOGIC ]] --
+local function GetTarget()
+    local target = nil; local dist = math.huge
+    for _, v in pairs(workspace:GetChildren()) do
+        if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 and v ~= LP.Character then
+            if v.Name:find("Aogiri") or v.Name:find("CCG") or v:FindFirstChild("Rank") then
+                local d = (LP.Character.HumanoidRootPart.Position - v.HumanoidRootPart.Position).Magnitude
+                if d < dist then dist = d; target = v end
+            end
+        end
+    end
+    return target
+end
+
+CreateToggle("Auto Farm NPC", UDim2.new(0, 20, 0, 50), function(v) _G.Farm = v end)
+CreateToggle("Auto Boss (Facing)", UDim2.new(0, 20, 0, 95), function(v) _G.Boss = v end)
+CreateToggle("Auto Eat", UDim2.new(0, 20, 0, 140), function(v) _G.Eat = v end)
+
+-- Main Loop
 spawn(function()
     while task.wait() do
         pcall(function()
-            if _G.Tele or _G.Tween then
-                for _, npc in pairs(workspace.NPCs:GetChildren()) do
-                    if npc:FindFirstChild("Humanoid") and npc.Humanoid.Health > 0 then
-                        local targetPos = npc.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
-                        
-                        if _G.Tele then
-                            LP.Character.HumanoidRootPart.CFrame = targetPos
-                        elseif _G.Tween then
-                            local dist = (LP.Character.HumanoidRootPart.Position - targetPos.Position).Magnitude
-                            local tween = TweenService:Create(LP.Character.HumanoidRootPart, TweenInfo.new(dist/math.max(Speed, 1), Enum.EasingStyle.Linear), {CFrame = targetPos})
-                            tween:Play()
-                            if dist < 10 then tween:Cancel() end
-                        end
-                        
-                        game:GetService("VirtualUser"):ClickButton1(Vector2.new(0,0))
-                        if npc.Humanoid.Health <= 0 then break end
+            if _G.Farm or _G.Boss then
+                local t = GetTarget()
+                if t then
+                    local offset = _G.Boss and Vector3.new(0, _G.Height, 0) or Vector3.new(0, 0, 3)
+                    LP.Character.HumanoidRootPart.CFrame = CFrame.new(t.HumanoidRootPart.Position + offset, t.HumanoidRootPart.Position)
+                    
+                    -- Attack
+                    game:GetService("VirtualUser"):ClickButton1(Vector2.new(0,0))
+                    for k, v in pairs(_G.Skills) do
+                        if v then game:GetService("VirtualUser"):TypeKey(k == "1" and "One" or k == "2" and "Two" or k == "3" and "Three" or k == "4" and "Four" or "Five") end
                     end
                 end
             end
             
-            if _G.Stats then
-                game:GetService("ReplicatedStorage").Remotes.StatsV2:FireServer("Focus", "Physical", 1)
-                game:GetService("ReplicatedStorage").Remotes.StatsV2:FireServer("Focus", "Durability", 1)
+            if _G.Eat then
+                for _, v in pairs(workspace:GetChildren()) do
+                    if v.Name == "Corpse" then
+                        LP.Character.HumanoidRootPart.CFrame = v.CFrame
+                        fireclickdetector(v:FindFirstChildOfClass("ClickDetector"))
+                    end
+                end
             end
         end)
     end
 end)
-          
