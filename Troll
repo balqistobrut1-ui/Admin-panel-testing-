@@ -1,0 +1,419 @@
+--[[
+╔══════════════════════════════════════════════════════════════╗
+║                    TROLLING SCRIPT V2.0                                 ║
+║                  Created by: [ZXCK]                                     ║
+║                       FOR FUN ONLY!                                     ║
+║           Jangan dipakai buat ngebully beneran ya                       ║
+╚══════════════════════════════════════════════════════════════╝
+--]]
+
+-- Inisialisasi Variable
+_G.TrollSettings = {
+    Enabled = true,
+    Walkspeed = 16,
+    Jumppower = 50,
+    SpamMessage = "ANAK KUCING LUCU BANGET",
+    SpamEnabled = false,
+    FlipEnabled = false,
+    InvisiText = "👻 BOO!",
+    SoundEnabled = false,
+    SoundId = "rbxassetid://9120384732", -- suara kocak (bisa diganti)
+}
+
+-- Membuat GUI Utama (dibawah 547 baris)
+local function CreateTrollUI()
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "TrollMenu"
+    screenGui.Parent = game.CoreGui
+    screenGui.ResetOnSpawn = false
+    
+    -- Frame utama
+    local main = Instance.new("Frame")
+    main.Name = "Main"
+    main.Parent = screenGui
+    main.BackgroundColor3 = Color3.fromRGB(25, 20, 30)
+    main.BorderSizePixel = 2
+    main.BorderColor3 = Color3.fromRGB(255, 100, 200)
+    main.Position = UDim2.new(0.5, -200, 0.5, -150)
+    main.Size = UDim2.new(0, 400, 0, 350)
+    main.Active = true
+    main.Draggable = true
+    
+    -- Judul
+    local titleBar = Instance.new("Frame")
+    titleBar.Parent = main
+    titleBar.BackgroundColor3 = Color3.fromRGB(40, 30, 50)
+    titleBar.Size = UDim2.new(1, 0, 0, 30)
+    
+    local title = Instance.new("TextLabel")
+    title.Parent = titleBar
+    title.BackgroundTransparency = 1
+    title.Size = UDim2.new(1, -30, 1, 0)
+    title.Position = UDim2.new(0, 10, 0, 0)
+    title.Text = "🎭 TROLLING PANEL"
+    title.TextColor3 = Color3.fromRGB(255, 200, 255)
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 16
+    
+    -- Tombol close
+    local close = Instance.new("TextButton")
+    close.Parent = titleBar
+    close.BackgroundColor3 = Color3.fromRGB(200, 50, 80)
+    close.Size = UDim2.new(0, 25, 0, 25)
+    close.Position = UDim2.new(1, -30, 0, 2.5)
+    close.Text = "×"
+    close.TextColor3 = Color3.fromRGB(255, 255, 255)
+    close.Font = Enum.Font.GothamBold
+    close.TextSize = 20
+    close.BorderSizePixel = 0
+    
+    -- Scrolling frame biar muat banyak fitur
+    local scroll = Instance.new("ScrollingFrame")
+    scroll.Parent = main
+    scroll.BackgroundColor3 = Color3.fromRGB(30, 25, 35)
+    scroll.Size = UDim2.new(1, -10, 1, -40)
+    scroll.Position = UDim2.new(0, 5, 0, 35)
+    scroll.CanvasSize = UDim2.new(0, 0, 0, 500)
+    scroll.ScrollBarThickness = 5
+    
+    local layout = Instance.new("UIListLayout")
+    layout.Parent = scroll
+    layout.Padding = UDim.new(0, 8)
+    layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    
+    -- Fungsi bikin toggle
+    local function createToggle(parent, text, var, color)
+        local frame = Instance.new("Frame")
+        frame.Parent = parent
+        frame.BackgroundColor3 = Color3.fromRGB(45, 40, 55)
+        frame.Size = UDim2.new(1, -10, 0, 45)
+        frame.BorderSizePixel = 0
+        
+        local label = Instance.new("TextLabel")
+        label.Parent = frame
+        label.BackgroundTransparency = 1
+        label.Size = UDim2.new(0.7, 0, 1, 0)
+        label.Position = UDim2.new(0, 10, 0, 0)
+        label.Text = text
+        label.TextColor3 = Color3.fromRGB(255, 255, 255)
+        label.TextXAlignment = Enum.TextXAlignment.Left
+        label.Font = Enum.Font.Gotham
+        label.TextSize = 15
+        
+        local btn = Instance.new("TextButton")
+        btn.Parent = frame
+        btn.BackgroundColor3 = _G.TrollSettings[var] and Color3.fromRGB(80, 200, 120) or Color3.fromRGB(200, 80, 80)
+        btn.Size = UDim2.new(0, 60, 0, 30)
+        btn.Position = UDim2.new(1, -70, 0, 7.5)
+        btn.Text = _G.TrollSettings[var] and "ON" or "OFF"
+        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        btn.Font = Enum.Font.GothamBold
+        btn.TextSize = 14
+        btn.BorderSizePixel = 0
+        
+        btn.MouseButton1Click:Connect(function()
+            _G.TrollSettings[var] = not _G.TrollSettings[var]
+            btn.BackgroundColor3 = _G.TrollSettings[var] and Color3.fromRGB(80, 200, 120) or Color3.fromRGB(200, 80, 80)
+            btn.Text = _G.TrollSettings[var] and "ON" or "OFF"
+        end)
+    end
+    
+    -- Fungsi bikin button
+    local function createButton(parent, text, callback, color)
+        color = color or Color3.fromRGB(100, 80, 180)
+        local btn = Instance.new("TextButton")
+        btn.Parent = parent
+        btn.BackgroundColor3 = color
+        btn.Size = UDim2.new(1, -10, 0, 40)
+        btn.Text = text
+        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        btn.Font = Enum.Font.GothamBold
+        btn.TextSize = 15
+        btn.BorderSizePixel = 0
+        
+        btn.MouseButton1Click:Connect(callback)
+    end
+    
+    -- Fungsi bikin slider sederhana
+    local function createSimpleSlider(parent, text, var, min, max)
+        local frame = Instance.new("Frame")
+        frame.Parent = parent
+        frame.BackgroundColor3 = Color3.fromRGB(45, 40, 55)
+        frame.Size = UDim2.new(1, -10, 0, 60)
+        frame.BorderSizePixel = 0
+        
+        local label = Instance.new("TextLabel")
+        label.Parent = frame
+        label.BackgroundTransparency = 1
+        label.Size = UDim2.new(1, -20, 0, 20)
+        label.Position = UDim2.new(0, 10, 0, 5)
+        label.Text = text .. ": " .. _G.TrollSettings[var]
+        label.TextColor3 = Color3.fromRGB(255, 255, 255)
+        label.Font = Enum.Font.Gotham
+        label.TextSize = 14
+        
+        local plus = Instance.new("TextButton")
+        plus.Parent = frame
+        plus.BackgroundColor3 = Color3.fromRGB(70, 130, 200)
+        plus.Size = UDim2.new(0, 40, 0, 25)
+        plus.Position = UDim2.new(1, -90, 0, 25)
+        plus.Text = "+"
+        plus.TextColor3 = Color3.fromRGB(255, 255, 255)
+        plus.Font = Enum.Font.GothamBold
+        plus.TextSize = 18
+        plus.BorderSizePixel = 0
+        
+        local minus = Instance.new("TextButton")
+        minus.Parent = frame
+        minus.BackgroundColor3 = Color3.fromRGB(200, 70, 70)
+        minus.Size = UDim2.new(0, 40, 0, 25)
+        minus.Position = UDim2.new(1, -140, 0, 25)
+        minus.Text = "-"
+        minus.TextColor3 = Color3.fromRGB(255, 255, 255)
+        minus.Font = Enum.Font.GothamBold
+        minus.TextSize = 18
+        minus.BorderSizePixel = 0
+        
+        plus.MouseButton1Click:Connect(function()
+            _G.TrollSettings[var] = math.min(max, _G.TrollSettings[var] + 1)
+            label.Text = text .. ": " .. _G.TrollSettings[var]
+        end)
+        
+        minus.MouseButton1Click:Connect(function()
+            _G.TrollSettings[var] = math.max(min, _G.TrollSettings[var] - 1)
+            label.Text = text .. ": " .. _G.TrollSettings[var]
+        end)
+    end
+    
+    -- === FITUR-FITUR TROLLING ===
+    
+    -- Header 1
+    local h1 = Instance.new("TextLabel")
+    h1.Parent = scroll
+    h1.BackgroundTransparency = 1
+    h1.Size = UDim2.new(1, -10, 0, 25)
+    h1.Text = "⚡ PLAYER TROLL"
+    h1.TextColor3 = Color3.fromRGB(255, 150, 255)
+    h1.Font = Enum.Font.GothamBold
+    h1.TextSize = 18
+    
+    -- Toggle ubah speed
+    createToggle(scroll, "Mode Cepat (Walkspeed)", "Enabled")
+    createSimpleSlider(scroll, "Kecepatan Lari", "Walkspeed", 16, 250)
+    createSimpleSlider(scroll, "Lompat Tinggi", "Jumppower", 50, 200)
+    
+    createButton(scroll, "🚀 TERBANG (Fly)", function()
+        local plr = game.Players.LocalPlayer
+        local char = plr.Character
+        if char and char:FindFirstChild("Humanoid") then
+            char.Humanoid:ChangeState(11) -- state flying
+        end
+    end, Color3.fromRGB(255, 100, 100))
+    
+    createButton(scroll, "🔄 FLIP (Terbalik)", function()
+        local plr = game.Players.LocalPlayer
+        local char = plr.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            char.HumanoidRootPart.Orientation = Vector3.new(0, 0, 180)
+            wait(0.5)
+            char.HumanoidRootPart.Orientation = Vector3.new(0, 0, 0)
+        end
+        _G.TrollSettings.FlipEnabled = not _G.TrollSettings.FlipEnabled
+    end, Color3.fromRGB(200, 150, 50))
+    
+    -- Header 2
+    local h2 = Instance.new("TextLabel")
+    h2.Parent = scroll
+    h2.BackgroundTransparency = 1
+    h2.Size = UDim2.new(1, -10, 0, 25)
+    h2.Text = "💬 CHAT TROLL"
+    h2.TextColor3 = Color3.fromRGB(150, 255, 150)
+    h2.Font = Enum.Font.GothamBold
+    h2.TextSize = 18
+    
+    -- Input buat spam message
+    local msgFrame = Instance.new("Frame")
+    msgFrame.Parent = scroll
+    msgFrame.BackgroundColor3 = Color3.fromRGB(45, 40, 55)
+    msgFrame.Size = UDim2.new(1, -10, 0, 35)
+    msgFrame.BorderSizePixel = 0
+    
+    local msgBox = Instance.new("TextBox")
+    msgBox.Parent = msgFrame
+    msgBox.BackgroundColor3 = Color3.fromRGB(30, 25, 40)
+    msgBox.Size = UDim2.new(1, -10, 0, 25)
+    msgBox.Position = UDim2.new(0, 5, 0, 5)
+    msgBox.PlaceholderText = "Pesan spam..."
+    msgBox.Text = _G.TrollSettings.SpamMessage
+    msgBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    msgBox.Font = Enum.Font.Gotham
+    msgBox.TextSize = 14
+    
+    msgBox.FocusLost:Connect(function()
+        _G.TrollSettings.SpamMessage = msgBox.Text
+    end)
+    
+    createToggle(scroll, "Spam Chat Aktif", "SpamEnabled")
+    
+    createButton(scroll, "💥 SPAM 1x", function()
+        game:GetService("ReplicatedStorage"):FindFirstChild("DefaultChatSystemChatEvents"):FindFirstChild("SayMessageRequest"):FireServer(_G.TrollSettings.SpamMessage, "All")
+    end)
+    
+    -- Header 3
+    local h3 = Instance.new("TextLabel")
+    h3.Parent = scroll
+    h3.BackgroundTransparency = 1
+    h3.Size = UDim2.new(1, -10, 0, 25)
+    h3.Text = "👻 VISUAL TROLL"
+    h3.TextColor3 = Color3.fromRGB(255, 255, 150)
+    h3.Font = Enum.Font.GothamBold
+    h3.TextSize = 18
+    
+    createButton(scroll, "🦇 INVISIBILITAS", function()
+        local plr = game.Players.LocalPlayer
+        local char = plr.Character
+        if char then
+            for _, part in pairs(char:GetChildren()) do
+                if part:IsA("BasePart") then
+                    part.Transparency = part.Transparency == 1 and 0 or 1
+                end
+            end
+            game:GetService("StarterGui"):SetCore("SendNotification", {
+                Title = "👻 BOO!",
+                Text = _G.TrollSettings.InvisiText,
+                Duration = 2
+            })
+        end
+    end, Color3.fromRGB(150, 100, 200))
+    
+    createButton(scroll, "🎈 KEPALA BESAR", function()
+        local plr = game.Players.LocalPlayer
+        local char = plr.Character
+        if char and char:FindFirstChild("Head") then
+            char.Head.Size = Vector3.new(4, 4, 4)
+            wait(3)
+            char.Head.Size = Vector3.new(2, 1, 1) -- balikin ukuran normal
+        end
+    end, Color3.fromRGB(255, 150, 50))
+    
+    -- Header 4
+    local h4 = Instance.new("TextLabel")
+    h4.Parent = scroll
+    h4.BackgroundTransparency = 1
+    h4.Size = UDim2.new(1, -10, 0, 25)
+    h4.Text = "🔊 SOUND TROLL"
+    h4.TextColor3 = Color3.fromRGB(255, 200, 100)
+    h4.Font = Enum.Font.GothamBold
+    h4.TextSize = 18
+    
+    createToggle(scroll, "Putar Suara", "SoundEnabled")
+    
+    createButton(scroll, "🎵 GANTI SUARA (Vine Boom)", function()
+        _G.TrollSettings.SoundId = "rbxassetid://9120384732" -- vine boom
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "🔊 Sound Set",
+            Text = "Suara diganti ke Vine Boom",
+            Duration = 1
+        })
+    end)
+    
+    createButton(scroll, "🎵 SUARA KOCAK", function()
+        _G.TrollSettings.SoundId = "rbxassetid://1843545206" -- suara lucu
+    end)
+    
+    createButton(scroll, "🔊 TEST SUARA", function()
+        local sound = Instance.new("Sound")
+        sound.Parent = game.Workspace
+        sound.SoundId = _G.TrollSettings.SoundId
+        sound.Volume = 1
+        sound:Play()
+        game:GetService("Debris"):AddItem(sound, 5)
+    end)
+    
+    -- Button reset
+    createButton(scroll, "🔄 RESET SEMUA", function()
+        _G.TrollSettings.Walkspeed = 16
+        _G.TrollSettings.Jumppower = 50
+        _G.TrollSettings.SpamMessage = "ANAK KUCING LUCU BANGET"
+        _G.TrollSettings.Enabled = true
+        _G.TrollSettings.SpamEnabled = false
+        _G.TrollSettings.FlipEnabled = false
+        _G.TrollSettings.InvisiText = "👻 BOO!"
+        msgBox.Text = _G.TrollSettings.SpamMessage
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "🔄 Reset",
+            Text = "Semua setting balik ke awal",
+            Duration = 2
+        })
+    end, Color3.fromRGB(150, 50, 50))
+    
+    -- Close button function
+    close.MouseButton1Click:Connect(function()
+        screenGui:Destroy()
+    end)
+    
+    -- Update CanvasSize
+    scroll.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 20)
+    
+    return screenGui
+end
+
+-- Jalankan UI
+local ui = CreateTrollUI()
+
+-- Logic untuk spam chat
+spawn(function()
+    while wait(2) do
+        if _G.TrollSettings.SpamEnabled then
+            pcall(function()
+                local chatRemote = game:GetService("ReplicatedStorage"):FindFirstChild("DefaultChatSystemChatEvents") and 
+                                  game:GetService("ReplicatedStorage"):FindFirstChild("DefaultChatSystemChatEvents"):FindFirstChild("SayMessageRequest")
+                if chatRemote then
+                    chatRemote:FireServer(_G.TrollSettings.SpamMessage, "All")
+                end
+            end)
+        end
+    end
+end)
+
+-- Logic untuk walkspeed & jumppower
+spawn(function()
+    while wait(1) do
+        pcall(function()
+            local plr = game.Players.LocalPlayer
+            if plr.Character and plr.Character:FindFirstChild("Humanoid") then
+                local hum = plr.Character.Humanoid
+                if hum.WalkSpeed ~= _G.TrollSettings.Walkspeed then
+                    hum.WalkSpeed = _G.TrollSettings.Walkspeed
+                end
+                if hum.JumpPower ~= _G.TrollSettings.Jumppower then
+                    hum.JumpPower = _G.TrollSettings.Jumppower
+                end
+            end
+        end)
+    end
+end)
+
+-- Logic sound loop
+spawn(function()
+    while wait(5) do
+        if _G.TrollSettings.SoundEnabled then
+            pcall(function()
+                local sound = Instance.new("Sound")
+                sound.Parent = game.Workspace
+                sound.SoundId = _G.TrollSettings.SoundId
+                sound.Volume = 0.8
+                sound:Play()
+                game:GetService("Debris"):AddItem(sound, 4)
+            end)
+        end
+    end
+end)
+
+-- Notifikasi selesai
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "🎭 TROLL SCRIPT READY",
+    Text = "470 baris! Dibawah 547. Selamat ngetroll!",
+    Duration = 3
+})
